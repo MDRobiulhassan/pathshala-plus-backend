@@ -19,7 +19,7 @@ public class QuestionOption extends AuditableEntity {
     Question question;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 1)
+    @Column(nullable = false, length = 10)
     OptionLabel optionLabel;
 
     @Column(nullable = false, columnDefinition = "TEXT")

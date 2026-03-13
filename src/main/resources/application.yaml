@@ -6,6 +6,7 @@ spring:
   application:
     name: pathshala-plus-backend
 
+
   datasource:
     URL: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
@@ -25,3 +26,9 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

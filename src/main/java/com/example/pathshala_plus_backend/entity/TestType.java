@@ -14,7 +14,7 @@ import lombok.experimental.FieldDefaults;
 @Table(
         name = "test_types",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_test_type_name", columnNames = "testTypeName")
+                @UniqueConstraint(name = "uk_test_type_name", columnNames = "test_type_name")
         }
 )
 public class TestType extends AuditableEntity {

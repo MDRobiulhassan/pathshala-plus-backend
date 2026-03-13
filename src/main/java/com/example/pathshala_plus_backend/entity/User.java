@@ -38,7 +38,7 @@ public class User extends AuditableEntity {
     Language preferredLanguage;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "education_level_id", nullable = false)
+    @JoinColumn(name = "education_level_id")
     EducationLevel educationLevel;
 
     @Column(nullable = false,columnDefinition = "boolean default true")

@@ -25,7 +25,7 @@ public class Question extends AuditableEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     String questionText;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "language_id", nullable = false)
     Language language;
 
@@ -47,7 +47,7 @@ public class Question extends AuditableEntity {
     Boolean isApproved = false;
 
     @Column(length = 100)
-    String Source;
+    String source;
 
     @OneToMany(mappedBy = "question", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     List<QuestionOption> options = new ArrayList<>();
