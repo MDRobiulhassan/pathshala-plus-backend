@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Getter
 @Setter
@@ -44,4 +47,7 @@ public class Test extends AuditableEntity {
 
     @Column
     Float passMarks;
+
+    @OneToMany(mappedBy = "test", fetch = FetchType.LAZY)
+    List<TestQuestion> testQuestions = new ArrayList<>();
 }

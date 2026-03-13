@@ -5,6 +5,8 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -34,4 +36,7 @@ public class TestAttempt extends AuditableEntity {
 
     @Column(nullable = false, columnDefinition = "boolean default false")
     Boolean completed = false;
+
+    @OneToMany(mappedBy = "testAttempt", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    List<TestAnswer> answers = new ArrayList<>();
 }
