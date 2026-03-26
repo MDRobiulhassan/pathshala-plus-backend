@@ -1,0 +1,5 @@
+ALTER TABLE questions ALTER COLUMN chapter_id DROP NOT NULL;
+
+ALTER TABLE questions ADD COLUMN subject_id BIGINT NOT NULL REFERENCES subjects(id);
+
+ALTER TABLE questions ALTER COLUMN source SET NOT NULL;

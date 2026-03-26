@@ -19,7 +19,7 @@ import java.util.List;
 public class Question extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chapter_id", nullable = false)
+    @JoinColumn(name = "chapter_id")
     Chapter chapter;
 
     @Column(nullable = false, columnDefinition = "TEXT")
@@ -46,8 +46,12 @@ public class Question extends AuditableEntity {
     @Column(nullable = false, columnDefinition = "boolean default false")
     Boolean isApproved = false;
 
-    @Column(length = 100)
+    @Column(length = 100,nullable = false)
     String source;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id", nullable = false)
+    Subject subject;
 
     @OneToMany(mappedBy = "question", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     List<QuestionOption> options = new ArrayList<>();
