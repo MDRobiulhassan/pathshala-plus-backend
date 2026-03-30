@@ -49,10 +49,17 @@ public class Question extends AuditableEntity {
     @Column(length = 100,nullable = false)
     String source;
 
+    @Column(nullable = false,length = 10)
+    String year;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id", nullable = false)
     Subject subject;
 
     @OneToMany(mappedBy = "question", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     List<QuestionOption> options = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "passage_id")
+    Passage passage;
 }
