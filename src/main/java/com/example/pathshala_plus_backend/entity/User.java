@@ -5,6 +5,8 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -48,4 +50,7 @@ public class User extends AuditableEntity {
 
     @Column(length = 500)
     String avatarUrl;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    List<UserRole> userRoles = new ArrayList<>();
 }
