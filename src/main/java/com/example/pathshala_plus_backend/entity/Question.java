@@ -1,7 +1,7 @@
 package com.example.pathshala_plus_backend.entity;
 
-import com.example.pathshala_plus_backend.entity.enums.Difficulty;
-import com.example.pathshala_plus_backend.entity.enums.GenerationType;
+import com.example.pathshala_plus_backend.enums.Difficulty;
+import com.example.pathshala_plus_backend.enums.GenerationType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;

@@ -1,6 +1,6 @@
 package com.example.pathshala_plus_backend.entity;
 
-import com.example.pathshala_plus_backend.entity.enums.Provider;
+import com.example.pathshala_plus_backend.enums.Provider;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;

@@ -1,7 +1,8 @@
 package com.example.pathshala_plus_backend.repository;
 
 import com.example.pathshala_plus_backend.entity.Chapter;
+import lombok.NonNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ChapterRepository extends JpaRepository<Chapter, Long> {
+public interface ChapterRepository extends JpaRepository<@NonNull Chapter,@NonNull Long> {
 }

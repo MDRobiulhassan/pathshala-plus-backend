@@ -1,4 +1,4 @@
-package com.example.pathshala_plus_backend.entity.enums;
+package com.example.pathshala_plus_backend.enums;
 
 public enum PermissionModule {
     AUTH,

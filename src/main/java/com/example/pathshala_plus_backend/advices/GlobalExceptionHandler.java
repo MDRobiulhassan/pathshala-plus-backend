@@ -1,6 +1,7 @@
 package com.example.pathshala_plus_backend.advices;
 
 import com.example.pathshala_plus_backend.exceptions.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,16 +13,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<?> ResourceNotFound(ResourceNotFoundException exception) {
+    public ResponseEntity<?> handleResourceNotFound(ResourceNotFoundException exception) {
         ApiError apiError = ApiError.builder().status(HttpStatus.NOT_FOUND).message(exception.getMessage()).build();
         return buildErrorResponseEntity(apiError);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> InternalServerError(Exception exception) {
-        ApiError apiError = ApiError.builder().status(HttpStatus.INTERNAL_SERVER_ERROR).message(exception.getMessage()).build();
+    public ResponseEntity<?> handleInternalServerError(Exception exception) {
+        log.error("Unhandled exception occurred: ", exception);
+        ApiError apiError = ApiError.builder().status(HttpStatus.INTERNAL_SERVER_ERROR).message("An Unexpected Error Occurred").build();
         return buildErrorResponseEntity(apiError);
     }
 

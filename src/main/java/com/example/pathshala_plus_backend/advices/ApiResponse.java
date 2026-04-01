@@ -6,21 +6,24 @@ import java.time.Instant;
 
 @Data
 public class ApiResponse<T> {
-    private Instant timestamps;
+    private Instant timestamp;
     private T data;
     private ApiError error;
+    private boolean success;
 
     public ApiResponse() {
-        this.timestamps = Instant.now();
+        this.timestamp = Instant.now();
     }
 
     public ApiResponse(T data) {
         this();
         this.data = data;
+        this.success = true;
     }
 
     public ApiResponse(ApiError error) {
         this();
         this.error = error;
+        this.success = false;
     }
 }
