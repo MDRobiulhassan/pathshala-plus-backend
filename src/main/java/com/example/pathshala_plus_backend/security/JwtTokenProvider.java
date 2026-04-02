@@ -1,9 +1,11 @@
 package com.example.pathshala_plus_backend.security;
 
+import com.example.pathshala_plus_backend.exceptions.UnauthorizedException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,6 +17,7 @@ import java.time.Duration;
 import java.util.Date;
 
 @Component
+@Slf4j
 public class JwtTokenProvider {
 
     private SecretKey signingKey;
@@ -43,7 +46,7 @@ public class JwtTokenProvider {
 
     private String getToken(Authentication authentication, Long expirationMs) {
         CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
-        assert user != null;
+        if (user == null) throw new UnauthorizedException("User not authenticated");
 
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
@@ -57,16 +60,17 @@ public class JwtTokenProvider {
     }
 
     public boolean verifyToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(signingKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
-        Long userId = ((Integer) claims.get("userId")).longValue();
-        String username = claims.getSubject();
-        boolean notExpired = claims.getExpiration().after(new Date());
-        return username.equals(claims.getSubject()) && notExpired;
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return claims.getExpiration().after(new Date());
+        } catch (Exception e) {
+            log.warn("JWT validation failed: {}", e.getMessage());
+            return false;
+        }
     }
 
     public Long getCurrentUserId() {
@@ -79,10 +83,17 @@ public class JwtTokenProvider {
     }
 
     public String extractUsername(String token) {
-        Claims claims = Jwts.parser().verifyWith(signingKey).build()
-                .parseSignedClaims(token).getPayload();
-
-        return claims.getSubject();
+        try {
+            return Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getSubject();
+        } catch (Exception e) {
+            log.warn("Failed to extract username from token: {}", e.getMessage());
+            return null;
+        }
     }
 
 }

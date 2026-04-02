@@ -28,7 +28,7 @@ public abstract class AuditableEntity {
     private Instant updatedAt;
 
     @CreatedBy
-    @Column(updatable = false,nullable = false)
+    @Column(updatable = false)
     private Long createdBy;
 
     @LastModifiedBy
