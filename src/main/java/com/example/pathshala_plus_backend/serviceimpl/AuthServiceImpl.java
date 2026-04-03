@@ -61,7 +61,10 @@ public class AuthServiceImpl implements AuthService {
         }
 
         Language language = languageRepository.findByCode(signupRequest.preferredLanguageCode())
-                .orElseThrow(() -> new ResourceNotFoundException("Invalid language: " + signupRequest.preferredLanguageCode()));
+                .orElseThrow(() -> {
+                    log.error("Language not found for code: '{}'", signupRequest.preferredLanguageCode());
+                    return new ResourceNotFoundException("Invalid language: " + signupRequest.preferredLanguageCode());
+                });
 
         if (signupRequest.educationLevelId() != null) {
             educationLevelRepository.findById(signupRequest.educationLevelId())
@@ -94,8 +97,8 @@ public class AuthServiceImpl implements AuthService {
         String rawAccessToken = jwtTokenProvider.generateAccessToken(authentication);
         String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
-        String hashedRefreshToken = passwordEncoder.encode(rawRefreshToken);
-        RefreshToken refreshTokenEntity = RefreshTokenMapper.toRefreshToken(savedUser, hashedRefreshToken, Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
+//        String hashedRefreshToken = passwordEncoder.encode(rawRefreshToken);
+        RefreshToken refreshTokenEntity = RefreshTokenMapper.toRefreshToken(savedUser, rawRefreshToken, Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
         refreshTokenRepository.save(refreshTokenEntity);
 
         log.info("User registered successfully: {}", savedUser.getEmail());
