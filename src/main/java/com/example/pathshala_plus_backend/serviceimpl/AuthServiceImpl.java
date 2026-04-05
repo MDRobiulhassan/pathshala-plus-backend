@@ -107,6 +107,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
+        User user = userRepository.findByEmail(loginRequest.email())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + loginRequest.email()));
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.email(),
@@ -118,6 +121,9 @@ public class AuthServiceImpl implements AuthService {
 
         String rawAccessToken = jwtTokenProvider.generateAccessToken(authentication);
         String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
+
+        RefreshToken refreshTokenEntity = RefreshTokenMapper.toRefreshToken(user, rawRefreshToken, Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
+        refreshTokenRepository.save(refreshTokenEntity);
 
         assert userDetails != null;
         RoleName role = userDetails.getAuthorities()
