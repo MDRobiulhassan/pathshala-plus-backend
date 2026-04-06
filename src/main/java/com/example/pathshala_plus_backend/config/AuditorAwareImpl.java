@@ -1,7 +1,6 @@
 package com.example.pathshala_plus_backend.config;
 
 import com.example.pathshala_plus_backend.security.CustomUserDetails;
-import com.example.pathshala_plus_backend.security.JwtTokenProvider;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.AuditorAware;
@@ -26,6 +25,7 @@ public class AuditorAwareImpl implements AuditorAware<@NonNull Long> {
         }
 
         CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        assert userDetails != null;
         return Optional.of(userDetails.getId());
     }
 }

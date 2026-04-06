@@ -12,6 +12,7 @@ import com.example.pathshala_plus_backend.enums.RoleName;
 import com.example.pathshala_plus_backend.exceptions.BadRequestException;
 import com.example.pathshala_plus_backend.exceptions.DuplicateResourceException;
 import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
+import com.example.pathshala_plus_backend.exceptions.UnauthorizedException;
 import com.example.pathshala_plus_backend.repository.*;
 import com.example.pathshala_plus_backend.security.CustomUserDetails;
 import com.example.pathshala_plus_backend.security.JwtTokenProvider;
@@ -23,13 +24,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -97,7 +96,6 @@ public class AuthServiceImpl implements AuthService {
         String rawAccessToken = jwtTokenProvider.generateAccessToken(authentication);
         String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
-//        String hashedRefreshToken = passwordEncoder.encode(rawRefreshToken);
         RefreshToken refreshTokenEntity = RefreshTokenMapper.toRefreshToken(savedUser, rawRefreshToken, Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
         refreshTokenRepository.save(refreshTokenEntity);
 
@@ -109,6 +107,10 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponse login(LoginRequest loginRequest) {
         User user = userRepository.findByEmail(loginRequest.email())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + loginRequest.email()));
+
+        if (!passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
+            throw new UnauthorizedException("Invalid email or password");
+        }
 
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -126,13 +128,7 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenRepository.save(refreshTokenEntity);
 
         assert userDetails != null;
-        RoleName role = userDetails.getAuthorities()
-                .stream()
-                .map(GrantedAuthority::getAuthority).filter(Objects::nonNull)
-                .filter(a -> a.startsWith("ROLE_"))
-                .map(a -> RoleName.valueOf(a.substring(5)))
-                .findFirst()
-                .orElseThrow();
+        RoleName role = user.getUserRoles().get(0).getRole().getName();
 
         return new LoginResponse(userDetails.getId(), rawRefreshToken, rawAccessToken, role);
     }

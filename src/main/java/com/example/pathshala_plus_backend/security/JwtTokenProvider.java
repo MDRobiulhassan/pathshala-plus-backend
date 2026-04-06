@@ -1,11 +1,15 @@
 package com.example.pathshala_plus_backend.security;
 
+import com.example.pathshala_plus_backend.entity.RefreshToken;
+import com.example.pathshala_plus_backend.entity.User;
 import com.example.pathshala_plus_backend.exceptions.UnauthorizedException;
+import com.example.pathshala_plus_backend.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,14 +18,15 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 
 @Component
 @Slf4j
 public class JwtTokenProvider {
 
+    private final RefreshTokenRepository refreshTokenRepository;
     private SecretKey signingKey;
-
     @Value("${jwt.secret-key}")
     private String jwtSecretKey;
 
@@ -30,6 +35,10 @@ public class JwtTokenProvider {
 
     @Value("${jwt.refresh-token-expiration-days}")
     private Integer refreshTokenExpirationDays;
+
+    public JwtTokenProvider(RefreshTokenRepository refreshTokenRepository) {
+        this.refreshTokenRepository = refreshTokenRepository;
+    }
 
     @PostConstruct
     public void init() {
@@ -59,7 +68,7 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public boolean verifyToken(String token) {
+    public boolean verifyAccessToken(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(signingKey)
@@ -71,6 +80,15 @@ public class JwtTokenProvider {
             log.warn("JWT validation failed: {}", e.getMessage());
             return false;
         }
+    }
+
+    public boolean verifyRefreshToken(String rawToken, User user) {
+        String hashedToken = DigestUtils.sha256Hex(rawToken);
+        RefreshToken tokenInDb = refreshTokenRepository
+                .findByUser(user)
+                .orElseThrow();
+        return !tokenInDb.getIsRevoked() && tokenInDb.getToken().equals(hashedToken)
+                && tokenInDb.getExpiresAt().isAfter(Instant.now());
     }
 
     public Long getCurrentUserId() {
