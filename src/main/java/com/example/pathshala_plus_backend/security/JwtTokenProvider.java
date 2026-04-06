@@ -4,6 +4,7 @@ import com.example.pathshala_plus_backend.entity.RefreshToken;
 import com.example.pathshala_plus_backend.entity.User;
 import com.example.pathshala_plus_backend.exceptions.UnauthorizedException;
 import com.example.pathshala_plus_backend.repository.RefreshTokenRepository;
+import com.example.pathshala_plus_backend.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -20,12 +21,15 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 
 @Component
 @Slf4j
 public class JwtTokenProvider {
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final UserRepository userRepository;
+
     private SecretKey signingKey;
     @Value("${jwt.secret-key}")
     private String jwtSecretKey;
@@ -36,8 +40,9 @@ public class JwtTokenProvider {
     @Value("${jwt.refresh-token-expiration-days}")
     private Integer refreshTokenExpirationDays;
 
-    public JwtTokenProvider(RefreshTokenRepository refreshTokenRepository) {
+    public JwtTokenProvider(RefreshTokenRepository refreshTokenRepository, UserRepository userRepository) {
         this.refreshTokenRepository = refreshTokenRepository;
+        this.userRepository = userRepository;
     }
 
     @PostConstruct
@@ -50,6 +55,10 @@ public class JwtTokenProvider {
     }
 
     public String generateRefreshToken(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        if (userDetails == null) throw new UnauthorizedException("User not authenticated");
+
+        invalidateRefreshTokens(userDetails);
         return getToken(authentication, Duration.ofDays(refreshTokenExpirationDays).toMillis());
     }
 
@@ -84,11 +93,24 @@ public class JwtTokenProvider {
 
     public boolean verifyRefreshToken(String rawToken, User user) {
         String hashedToken = DigestUtils.sha256Hex(rawToken);
-        RefreshToken tokenInDb = refreshTokenRepository
+        RefreshToken token = refreshTokenRepository
                 .findByUser(user)
                 .orElseThrow();
-        return !tokenInDb.getIsRevoked() && tokenInDb.getToken().equals(hashedToken)
-                && tokenInDb.getExpiresAt().isAfter(Instant.now());
+        return !token.getIsRevoked() && token.getToken().equals(hashedToken)
+                && token.getExpiresAt().isAfter(Instant.now());
+    }
+
+    private void invalidateRefreshTokens(CustomUserDetails userDetails) {
+        User user = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+
+        List<RefreshToken> previousTokens = refreshTokenRepository.findByUserIsDeletedFalse(user);
+
+        for (RefreshToken refreshToken : previousTokens) {
+            refreshToken.softDelete(user.getId());
+        }
+
+        refreshTokenRepository.saveAll(previousTokens);
     }
 
     public Long getCurrentUserId() {
