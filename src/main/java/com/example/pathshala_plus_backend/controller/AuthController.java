@@ -2,16 +2,14 @@ package com.example.pathshala_plus_backend.controller;
 
 import com.example.pathshala_plus_backend.dto.request.auth.LoginRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
+import com.example.pathshala_plus_backend.dto.response.auth.RefreshTokenResponse;
 import com.example.pathshala_plus_backend.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,5 +28,12 @@ public class AuthController {
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         return ResponseEntity.ok(authService.login(loginRequest));
     }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<RefreshTokenResponse> refreshToken(
+            @RequestParam("refreshToken") String refreshToken) {
+        return ResponseEntity.ok(authService.refreshAccessToken(refreshToken));
+    }
+
 
 }
