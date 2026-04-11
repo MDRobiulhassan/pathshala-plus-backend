@@ -6,6 +6,7 @@ import com.example.pathshala_plus_backend.Mapper.UserRoleMapper;
 import com.example.pathshala_plus_backend.dto.request.auth.LoginRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
 import com.example.pathshala_plus_backend.dto.response.auth.LoginResponse;
+import com.example.pathshala_plus_backend.dto.response.auth.RefreshTokenResponse;
 import com.example.pathshala_plus_backend.dto.response.auth.SignupResponse;
 import com.example.pathshala_plus_backend.entity.*;
 import com.example.pathshala_plus_backend.enums.RoleName;
@@ -20,6 +21,7 @@ import com.example.pathshala_plus_backend.service.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -131,5 +133,44 @@ public class AuthServiceImpl implements AuthService {
         RoleName role = user.getUserRoles().get(0).getRole().getName();
 
         return new LoginResponse(userDetails.getId(), rawRefreshToken, rawAccessToken, role);
+
+
     }
+
+    @Override
+    public RefreshTokenResponse refreshAccessToken(String rawRefreshToken) {
+        // Hash incoming token to match DB storage
+        String hashedToken = DigestUtils.sha256Hex(rawRefreshToken);
+
+        // Find current user
+        Long currentUserId = jwtTokenProvider.getCurrentUserId();
+        User user = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+
+        // Find refresh token entity
+        RefreshToken tokenEntity = refreshTokenRepository.findByUser(user)
+                .orElseThrow(() -> new UnauthorizedException("Refresh token not found"));
+
+        // Validate token
+        if (tokenEntity.getIsRevoked() || tokenEntity.getExpiresAt().isBefore(Instant.now())) {
+            throw new UnauthorizedException("Refresh token expired or revoked");
+        }
+        if (!tokenEntity.getToken().equals(hashedToken)) {
+            throw new UnauthorizedException("Invalid refresh token");
+        }
+
+        // Build authentication object
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities()
+        );
+
+        // Generate new access token
+        String newAccessToken = jwtTokenProvider.generateAccessToken(authentication);
+
+        return new RefreshTokenResponse(newAccessToken, "Bearer");
+    }
+
+
+
 }
