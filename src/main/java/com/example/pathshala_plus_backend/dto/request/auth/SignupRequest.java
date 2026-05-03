@@ -9,7 +9,7 @@ public record SignupRequest(
         @NotBlank @Size(min = 8,max = 50) String password,
         @NotBlank String confirmPassword,
         @NotBlank String preferredLanguageCode,
-        Long educationLevelId,
+        @NotBlank Long educationLevelId,
         @NotNull SignupRole role
 ) {
 }

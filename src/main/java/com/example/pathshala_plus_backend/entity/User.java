@@ -32,11 +32,11 @@ public class User extends AuditableEntity {
     @Column(length = 20)
     String phone;
 
-    @Column(nullable = false)
+    @Column
     String password;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "preferred_language_id", nullable = false)
+    @JoinColumn(name = "preferred_language_id",nullable = false)
     Language preferredLanguage;
 
     @ManyToOne(fetch = FetchType.LAZY)
