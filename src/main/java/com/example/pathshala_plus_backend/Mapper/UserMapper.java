@@ -19,6 +19,17 @@ public class UserMapper {
         user.setPassword(passwordEncoder.encode(signupRequest.password()));
         user.setPreferredLanguage(language);
         user.setEducationLevel(educationLevel);
+        user.setIsActive(true);
+        return user;
+    }
+
+    public static User fromOauth2UserInfo(String name,String email,Language preferredLanguage,String avatarUrl) {
+        User user = new User();
+        user.setName(name);
+        user.setEmail(email);
+        user.setPreferredLanguage(preferredLanguage);
+        user.setAvatarUrl(avatarUrl);
+        user.setIsActive(true);
         return user;
     }
 }

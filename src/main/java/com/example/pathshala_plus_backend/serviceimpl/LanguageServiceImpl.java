@@ -2,6 +2,7 @@ package com.example.pathshala_plus_backend.serviceimpl;
 
 import com.example.pathshala_plus_backend.dto.response.language.LanguageResponse;
 import com.example.pathshala_plus_backend.entity.Language;
+import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.repository.LanguageRepository;
 import com.example.pathshala_plus_backend.service.LanguageService;
 import jakarta.transaction.Transactional;
@@ -33,5 +34,11 @@ public class LanguageServiceImpl implements LanguageService {
                         language.getCode()
                 ))
                 .toList();
+    }
+
+    @Override
+    public Language findLanguageByCode(String code) {
+        return languageRepository.findByCode(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Language not found with code: " + code));
     }
 }

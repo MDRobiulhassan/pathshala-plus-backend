@@ -30,10 +30,13 @@ public class AuthController {
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<RefreshTokenResponse> refreshToken(
+    public ResponseEntity<?> refreshToken(
             @RequestParam("refreshToken") String refreshToken) {
         return ResponseEntity.ok(authService.refreshAccessToken(refreshToken));
     }
 
-
+    @PostMapping("/oauth2/google")
+    public ResponseEntity<?> socialLogin(){
+        return ResponseEntity.ok("/api/v1/auth/oauth2/google");
+    }
 }

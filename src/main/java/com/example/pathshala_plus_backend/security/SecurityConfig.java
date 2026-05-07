@@ -1,5 +1,7 @@
 package com.example.pathshala_plus_backend.security;
 
+import com.example.pathshala_plus_backend.handler.OAuth2FailureHandler;
+import com.example.pathshala_plus_backend.handler.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +12,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -19,6 +22,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final OAuth2SuccessHandler OAuth2SuccessHandler;
+    private final OAuth2FailureHandler OAuth2FailureHandler;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -36,13 +41,22 @@ public class SecurityConfig {
                                 "/api/v1/languages/**",
                                 "/api/v1/education/levels/**",
                                 "/api/v1/education-levels",
-                                "/api/v1/languages"
+                                "/api/v1/languages",
+                                "/oauth2/**",
+                                "/api/v1/auth/oauth2/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .oauth2Login(oauth2Config -> oauth2Config.failureUrl("/login?error=true"))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .oauth2Login(
+                        oauth2config -> oauth2config
+                                .authorizationEndpoint(endpoint -> endpoint.baseUri("/api/v1/auth/oauth2"))
+                                .redirectionEndpoint(endpoint -> endpoint.baseUri("/api/v1/auth/oauth2/callback/*"))
+                                .userInfoEndpoint(userInfo -> userInfo.userService(new DefaultOAuth2UserService()))
+                                .failureHandler(OAuth2FailureHandler)
+                                .successHandler(OAuth2SuccessHandler)
+                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
 
         return httpSecurity.build();
     }

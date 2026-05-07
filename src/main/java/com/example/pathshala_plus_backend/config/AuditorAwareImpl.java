@@ -24,8 +24,9 @@ public class AuditorAwareImpl implements AuditorAware<@NonNull Long> {
             return Optional.empty();
         }
 
-        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
-        assert userDetails != null;
-        return Optional.of(userDetails.getId());
+        if (auth.getPrincipal() instanceof CustomUserDetails userDetails) {
+            return Optional.of(userDetails.getId());
+        }
+        return Optional.empty();
     }
 }
