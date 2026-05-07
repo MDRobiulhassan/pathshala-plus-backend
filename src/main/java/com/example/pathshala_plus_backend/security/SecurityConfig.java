@@ -45,6 +45,10 @@ public class SecurityConfig {
                                 "/oauth2/**",
                                 "/api/v1/auth/oauth2/**"
                         ).permitAll()
+                        .requestMatchers(
+                                "/api/v1/auth/me",
+                                "/api/v1/auth/logout"
+                        ).authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

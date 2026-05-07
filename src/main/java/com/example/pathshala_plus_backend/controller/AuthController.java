@@ -4,10 +4,12 @@ import com.example.pathshala_plus_backend.dto.request.auth.LoginRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
 import com.example.pathshala_plus_backend.dto.response.auth.RefreshTokenResponse;
 import com.example.pathshala_plus_backend.service.AuthService;
+import com.example.pathshala_plus_backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,10 +20,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     AuthService authService;
+    UserService userService;
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
-        return ResponseEntity.ok(authService.signup(signupRequest));
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.signup(signupRequest));
     }
 
     @PostMapping("/login")
@@ -38,5 +41,10 @@ public class AuthController {
     @PostMapping("/oauth2/google")
     public ResponseEntity<?> socialLogin(){
         return ResponseEntity.ok("/api/v1/auth/oauth2/google");
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getUserProfile(){
+        return ResponseEntity.ok(userService.getUserProfile());
     }
 }

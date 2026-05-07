@@ -1,8 +1,6 @@
 package com.example.pathshala_plus_backend.repository;
 
 import com.example.pathshala_plus_backend.entity.User;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.NonNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,4 +18,14 @@ public interface UserRepository extends JpaRepository<@NonNull User, @NonNull Lo
     Optional<User> findByEmailWithRolesAndPermissions(@Param("email") String email);
 
     Optional<User> findByEmail(String email);
+
+    @Query("""
+                SELECT u FROM User u
+                LEFT JOIN FETCH u.preferredLanguage
+                LEFT JOIN FETCH u.educationLevel
+                LEFT JOIN FETCH u.userRoles ur
+                LEFT JOIN FETCH ur.role r
+                WHERE u.id = :id
+            """)
+    Optional<User> findByIdWithDetails(Long id);
 }

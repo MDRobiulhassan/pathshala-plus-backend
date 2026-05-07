@@ -53,18 +53,15 @@ public class JwtTokenProvider {
     }
 
     public String generateAccessToken(Authentication authentication) {
-        return getToken(authentication, Duration.ofMinutes(accessTokenExpirationMinutes).toMillis());
+        return getToken(authentication, Duration.ofMinutes(accessTokenExpirationMinutes).toMillis(),"ACCESS");
     }
 
     public String generateRefreshToken(Authentication authentication) {
-//        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-//        if (userDetails == null) throw new UnauthorizedException("User not authenticated");
-
         invalidateRefreshTokens(authentication);
-        return getToken(authentication, Duration.ofDays(refreshTokenExpirationDays).toMillis());
+        return getToken(authentication, Duration.ofDays(refreshTokenExpirationDays).toMillis(),"REFRESH");
     }
 
-    private String getToken(Authentication authentication, Long expirationMs) {
+    private String getToken(Authentication authentication, Long expirationMs,String tokenType) {
         String username;
         Long userId;
 
@@ -86,6 +83,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .subject(username)
                 .claim("userId", userId)
+                .claim("type",tokenType)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(signingKey)
@@ -99,7 +97,8 @@ public class JwtTokenProvider {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return claims.getExpiration().after(new Date());
+            return claims.getExpiration().after(new Date())
+                    && "ACCESS".equals(claims.get("type", String.class));
         } catch (Exception e) {
             log.warn("JWT validation failed: {}", e.getMessage());
             return false;
@@ -107,18 +106,33 @@ public class JwtTokenProvider {
     }
 
     public boolean verifyRefreshToken(String rawToken, User user) {
+        if (!isRefreshToken(rawToken)) {
+            return false;
+        }
+
         String hashedToken = DigestUtils.sha256Hex(rawToken);
         RefreshToken token = refreshTokenRepository
                 .findByUser(user)
-                .orElseThrow();
+                .orElseThrow(()-> new UnauthorizedException("Refresh token not found"));
         return !token.getIsRevoked() && token.getToken().equals(hashedToken)
                 && token.getExpiresAt().isAfter(Instant.now());
     }
 
-    private void invalidateRefreshTokens(Authentication authentication) {
-//        User user = userRepository.findById(userDetails.getId())
-//                .orElseThrow(() -> new UnauthorizedException("User not found"));
+    private boolean isRefreshToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return "REFRESH".equals(claims.get("type", String.class));
+        } catch (Exception e) {
+            log.warn("Failed to verify refresh token type: {}", e.getMessage());
+            return false;
+        }
+    }
 
+    private void invalidateRefreshTokens(Authentication authentication) {
         Long userId;
 
         if(authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
