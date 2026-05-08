@@ -9,7 +9,7 @@ import java.time.Instant;
 
 @UtilityClass
 public class UserRoleMapper {
-    public static UserRole userRole(User user, Role role){
+    public static UserRole toUserRole(User user, Role role){
         UserRole userRole = new UserRole();
         userRole.setUser(user);
         userRole.setRole(role);

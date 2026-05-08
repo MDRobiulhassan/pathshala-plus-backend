@@ -2,6 +2,7 @@ package com.example.pathshala_plus_backend.security;
 
 import com.example.pathshala_plus_backend.entity.RefreshToken;
 import com.example.pathshala_plus_backend.entity.User;
+import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.exceptions.UnauthorizedException;
 import com.example.pathshala_plus_backend.repository.RefreshTokenRepository;
 import com.example.pathshala_plus_backend.repository.UserRepository;
@@ -14,6 +15,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -51,26 +53,37 @@ public class JwtTokenProvider {
     }
 
     public String generateAccessToken(Authentication authentication) {
-        return getToken(authentication, Duration.ofMinutes(accessTokenExpirationMinutes).toMillis());
+        return getToken(authentication, Duration.ofMinutes(accessTokenExpirationMinutes).toMillis(),"ACCESS");
     }
 
     public String generateRefreshToken(Authentication authentication) {
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        if (userDetails == null) throw new UnauthorizedException("User not authenticated");
-
-        invalidateRefreshTokens(userDetails);
-        return getToken(authentication, Duration.ofDays(refreshTokenExpirationDays).toMillis());
+        invalidateRefreshTokens(authentication);
+        return getToken(authentication, Duration.ofDays(refreshTokenExpirationDays).toMillis(),"REFRESH");
     }
 
-    private String getToken(Authentication authentication, Long expirationMs) {
-        CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
-        if (user == null) throw new UnauthorizedException("User not authenticated");
+    private String getToken(Authentication authentication, Long expirationMs,String tokenType) {
+        String username;
+        Long userId;
+
+        if (authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
+            username = userDetails.getUsername();
+            userId = userDetails.getId();
+        } else if (authentication.getPrincipal() instanceof DefaultOAuth2User oAuth2User) {
+            username = oAuth2User.getAttribute("email");
+            userId = userRepository.findByEmail(username)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"))
+                    .getId();
+        } else {
+            throw new UnauthorizedException("Unknown authentication principal type");
+        }
 
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
+
         return Jwts.builder()
-                .subject(user.getUsername())
-                .claim("userId", user.getId())
+                .subject(username)
+                .claim("userId", userId)
+                .claim("type",tokenType)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(signingKey)
@@ -84,7 +97,8 @@ public class JwtTokenProvider {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return claims.getExpiration().after(new Date());
+            return claims.getExpiration().after(new Date())
+                    && "ACCESS".equals(claims.get("type", String.class));
         } catch (Exception e) {
             log.warn("JWT validation failed: {}", e.getMessage());
             return false;
@@ -92,21 +106,54 @@ public class JwtTokenProvider {
     }
 
     public boolean verifyRefreshToken(String rawToken, User user) {
+        if (!isRefreshToken(rawToken)) {
+            return false;
+        }
+
         String hashedToken = DigestUtils.sha256Hex(rawToken);
         RefreshToken token = refreshTokenRepository
                 .findByUser(user)
-                .orElseThrow();
+                .orElseThrow(()-> new UnauthorizedException("Refresh token not found"));
         return !token.getIsRevoked() && token.getToken().equals(hashedToken)
                 && token.getExpiresAt().isAfter(Instant.now());
     }
 
-    private void invalidateRefreshTokens(CustomUserDetails userDetails) {
-        User user = userRepository.findById(userDetails.getId())
-                .orElseThrow(() -> new UnauthorizedException("User not found"));
+    private boolean isRefreshToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return "REFRESH".equals(claims.get("type", String.class));
+        } catch (Exception e) {
+            log.warn("Failed to verify refresh token type: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    private void invalidateRefreshTokens(Authentication authentication) {
+        Long userId;
+
+        if(authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
+            userId = userDetails.getId();
+        }else if(authentication.getPrincipal() instanceof DefaultOAuth2User oAuth2User){
+            String email = oAuth2User.getAttribute("email");
+            userId = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"))
+                    .getId();
+        }else{
+            throw new UnauthorizedException("User not authenticated");
+        }
+
+        User user  = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         List<RefreshToken> previousTokens = refreshTokenRepository.findByUserIsDeletedFalse(user);
 
         for (RefreshToken refreshToken : previousTokens) {
+            refreshToken.setIsRevoked(true);
+            refreshToken.setRevokedAt(Instant.now());
             refreshToken.softDelete(user.getId());
         }
 

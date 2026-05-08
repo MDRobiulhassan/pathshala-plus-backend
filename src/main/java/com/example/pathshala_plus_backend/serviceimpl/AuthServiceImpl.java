@@ -85,7 +85,7 @@ public class AuthServiceImpl implements AuthService {
         User user = UserMapper.fromSignupRequest(signupRequest, language, educationLevel, passwordEncoder);
         User savedUser = userRepository.save(user);
 
-        UserRole userRole = UserRoleMapper.userRole(savedUser, role);
+        UserRole userRole = UserRoleMapper.toUserRole(savedUser, role);
         userRoleRepository.save(userRole);
 
         Authentication authentication = authenticationManager.authenticate(
@@ -133,8 +133,6 @@ public class AuthServiceImpl implements AuthService {
         RoleName role = user.getUserRoles().get(0).getRole().getName();
 
         return new LoginResponse(userDetails.getId(), rawRefreshToken, rawAccessToken, role);
-
-
     }
 
     @Override
@@ -165,7 +163,4 @@ public class AuthServiceImpl implements AuthService {
         String newAccessToken = jwtTokenProvider.generateAccessToken(authentication);
         return new RefreshTokenResponse(newAccessToken);
     }
-
-
-
 }
