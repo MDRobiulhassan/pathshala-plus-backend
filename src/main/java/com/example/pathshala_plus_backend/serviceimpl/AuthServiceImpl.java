@@ -137,19 +137,17 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public RefreshTokenResponse refreshAccessToken(String rawRefreshToken) {
-        // Hash incoming token to match DB storage
+
+        String username = jwtTokenProvider.extractUsername(rawRefreshToken);
+        if (username == null) throw new ResourceNotFoundException("Invalid refresh token");
+
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         String hashedToken = DigestUtils.sha256Hex(rawRefreshToken);
-
-        // Find current user
-        Long currentUserId = jwtTokenProvider.getCurrentUserId();
-        User user = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new UnauthorizedException("User not found"));
-
-        // Find refresh token entity
         RefreshToken tokenEntity = refreshTokenRepository.findByUser(user)
-                .orElseThrow(() -> new UnauthorizedException("Refresh token not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Refresh token not found"));
 
-        // Validate token
         if (tokenEntity.getIsRevoked() || tokenEntity.getExpiresAt().isBefore(Instant.now())) {
             throw new UnauthorizedException("Refresh token expired or revoked");
         }
@@ -157,15 +155,12 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("Invalid refresh token");
         }
 
-        // Build authentication object
         CustomUserDetails userDetails = new CustomUserDetails(user);
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userDetails, null, userDetails.getAuthorities()
         );
 
-        // Generate new access token
         String newAccessToken = jwtTokenProvider.generateAccessToken(authentication);
-
-        return new RefreshTokenResponse(newAccessToken, "Bearer");
+        return new RefreshTokenResponse(newAccessToken);
     }
 }
