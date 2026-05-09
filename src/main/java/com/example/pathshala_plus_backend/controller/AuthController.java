@@ -1,6 +1,7 @@
 package com.example.pathshala_plus_backend.controller;
 
 import com.example.pathshala_plus_backend.dto.request.auth.LoginRequest;
+import com.example.pathshala_plus_backend.dto.request.auth.LogoutRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.RefreshRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
 import com.example.pathshala_plus_backend.service.AuthService;
@@ -48,8 +49,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody RefreshRequest refreshRequest){
-        authService.logout(refreshRequest);
+    public ResponseEntity<?> logout(@RequestBody LogoutRequest logoutRequest){
+        authService.logout(logoutRequest);
         return ResponseEntity.ok().build();
     }
 }

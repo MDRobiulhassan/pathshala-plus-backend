@@ -4,6 +4,7 @@ import com.example.pathshala_plus_backend.Mapper.RefreshTokenMapper;
 import com.example.pathshala_plus_backend.Mapper.UserMapper;
 import com.example.pathshala_plus_backend.Mapper.UserRoleMapper;
 import com.example.pathshala_plus_backend.dto.request.auth.LoginRequest;
+import com.example.pathshala_plus_backend.dto.request.auth.LogoutRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.RefreshRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
 import com.example.pathshala_plus_backend.dto.response.auth.LoginResponse;
@@ -16,7 +17,6 @@ import com.example.pathshala_plus_backend.exceptions.DuplicateResourceException;
 import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.exceptions.UnauthorizedException;
 import com.example.pathshala_plus_backend.repository.*;
-import com.example.pathshala_plus_backend.security.AuthUtil;
 import com.example.pathshala_plus_backend.security.CustomUserDetails;
 import com.example.pathshala_plus_backend.security.JwtTokenProvider;
 import com.example.pathshala_plus_backend.service.AuthService;
@@ -48,7 +48,6 @@ public class AuthServiceImpl implements AuthService {
     private final EducationLevelRepository educationLevelRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
-    AuthUtil authUtil;
 
     @Value("${jwt.refresh-token-expiration-days}")
     private Integer refreshTokenExpirationDays;
@@ -161,8 +160,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout(RefreshRequest refreshRequest) {
-        String username = jwtTokenProvider.extractUsername(refreshRequest.refreshToken());
+    public void logout(LogoutRequest logoutRequest) {
+        String username = jwtTokenProvider.extractUsername(logoutRequest.refreshToken());
         if (username == null) {
             throw new UnauthorizedException("Invalid refresh token");
         }
@@ -170,7 +169,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (!jwtTokenProvider.verifyRefreshToken(refreshRequest.refreshToken(), user)) {
+        if (!jwtTokenProvider.verifyRefreshToken(logoutRequest.refreshToken(), user)) {
             throw new UnauthorizedException("Invalid or expired refresh token");
         }
 

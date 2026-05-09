@@ -1,6 +1,7 @@
 package com.example.pathshala_plus_backend.service;
 
 import com.example.pathshala_plus_backend.dto.request.auth.LoginRequest;
+import com.example.pathshala_plus_backend.dto.request.auth.LogoutRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.RefreshRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
 import com.example.pathshala_plus_backend.dto.response.auth.LoginResponse;
@@ -11,5 +12,5 @@ public interface AuthService {
     SignupResponse signup(SignupRequest signupRequest);
     LoginResponse login(LoginRequest loginRequest);
     RefreshResponse refreshAccessToken(RefreshRequest refreshRequest);
-    void logout(RefreshRequest refreshRequest);
+    void logout(LogoutRequest logoutRequest);
 }
