@@ -60,7 +60,7 @@ public class SecurityConfig {
                                 .failureHandler(OAuth2FailureHandler)
                                 .successHandler(OAuth2SuccessHandler)
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         return httpSecurity.build();
     }

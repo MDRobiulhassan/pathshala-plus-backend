@@ -1,8 +1,8 @@
 package com.example.pathshala_plus_backend.controller;
 
 import com.example.pathshala_plus_backend.dto.request.auth.LoginRequest;
+import com.example.pathshala_plus_backend.dto.request.auth.RefreshRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
-import com.example.pathshala_plus_backend.dto.response.auth.RefreshTokenResponse;
 import com.example.pathshala_plus_backend.service.AuthService;
 import com.example.pathshala_plus_backend.service.UserService;
 import jakarta.validation.Valid;
@@ -32,10 +32,9 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(loginRequest));
     }
 
-    @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(
-            @RequestParam("refreshToken") String refreshToken) {
-        return ResponseEntity.ok(authService.refreshAccessToken(refreshToken));
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody RefreshRequest refreshRequest) {
+        return ResponseEntity.ok(authService.refreshAccessToken(refreshRequest));
     }
 
     @PostMapping("/oauth2/google")
@@ -46,5 +45,11 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<?> getUserProfile(){
         return ResponseEntity.ok(userService.getUserProfile());
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody RefreshRequest refreshRequest){
+        authService.logout(refreshRequest);
+        return ResponseEntity.ok().build();
     }
 }

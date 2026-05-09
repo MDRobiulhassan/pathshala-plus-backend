@@ -57,25 +57,14 @@ public class JwtTokenProvider {
     }
 
     public String generateRefreshToken(Authentication authentication) {
-        invalidateRefreshTokens(authentication);
+        invalidateRefreshTokens(resolveUser(authentication));
         return getToken(authentication, Duration.ofDays(refreshTokenExpirationDays).toMillis(),"REFRESH");
     }
 
     private String getToken(Authentication authentication, Long expirationMs,String tokenType) {
-        String username;
-        Long userId;
-
-        if (authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
-            username = userDetails.getUsername();
-            userId = userDetails.getId();
-        } else if (authentication.getPrincipal() instanceof DefaultOAuth2User oAuth2User) {
-            username = oAuth2User.getAttribute("email");
-            userId = userRepository.findByEmail(username)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found"))
-                    .getId();
-        } else {
-            throw new UnauthorizedException("Unknown authentication principal type");
-        }
+        User user = resolveUser(authentication);
+        String username = user.getEmail();
+        Long userId = user.getId();
 
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
@@ -112,8 +101,7 @@ public class JwtTokenProvider {
 
         String hashedToken = DigestUtils.sha256Hex(rawToken);
         RefreshToken token = refreshTokenRepository
-                .findByUser(user)
-                .orElseThrow(()-> new UnauthorizedException("Refresh token not found"));
+                .findByUserAndIsDeletedFalseAndIsRevokedFalse(user).orElseThrow(()-> new ResourceNotFoundException("Refresh token not found for user"));
         return !token.getIsRevoked() && token.getToken().equals(hashedToken)
                 && token.getExpiresAt().isAfter(Instant.now());
     }
@@ -132,23 +120,7 @@ public class JwtTokenProvider {
         }
     }
 
-    private void invalidateRefreshTokens(Authentication authentication) {
-        Long userId;
-
-        if(authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
-            userId = userDetails.getId();
-        }else if(authentication.getPrincipal() instanceof DefaultOAuth2User oAuth2User){
-            String email = oAuth2User.getAttribute("email");
-            userId = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found"))
-                    .getId();
-        }else{
-            throw new UnauthorizedException("User not authenticated");
-        }
-
-        User user  = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
+    public void invalidateRefreshTokens(User user) {
         List<RefreshToken> previousTokens = refreshTokenRepository.findByUserIsDeletedFalse(user);
 
         for (RefreshToken refreshToken : previousTokens) {
@@ -183,4 +155,16 @@ public class JwtTokenProvider {
         }
     }
 
+    private User resolveUser(Authentication authentication) {
+        if (authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
+            return userRepository.findById(userDetails.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        } else if (authentication.getPrincipal() instanceof DefaultOAuth2User oAuth2User) {
+            String email = oAuth2User.getAttribute("email");
+            return userRepository.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        } else {
+            throw new UnauthorizedException("Unknown authentication principal type");
+        }
+    }
 }

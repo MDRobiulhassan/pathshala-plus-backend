@@ -4,9 +4,10 @@ import com.example.pathshala_plus_backend.Mapper.RefreshTokenMapper;
 import com.example.pathshala_plus_backend.Mapper.UserMapper;
 import com.example.pathshala_plus_backend.Mapper.UserRoleMapper;
 import com.example.pathshala_plus_backend.dto.request.auth.LoginRequest;
+import com.example.pathshala_plus_backend.dto.request.auth.RefreshRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
 import com.example.pathshala_plus_backend.dto.response.auth.LoginResponse;
-import com.example.pathshala_plus_backend.dto.response.auth.RefreshTokenResponse;
+import com.example.pathshala_plus_backend.dto.response.auth.RefreshResponse;
 import com.example.pathshala_plus_backend.dto.response.auth.SignupResponse;
 import com.example.pathshala_plus_backend.entity.*;
 import com.example.pathshala_plus_backend.enums.RoleName;
@@ -15,13 +16,13 @@ import com.example.pathshala_plus_backend.exceptions.DuplicateResourceException;
 import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.exceptions.UnauthorizedException;
 import com.example.pathshala_plus_backend.repository.*;
+import com.example.pathshala_plus_backend.security.AuthUtil;
 import com.example.pathshala_plus_backend.security.CustomUserDetails;
 import com.example.pathshala_plus_backend.security.JwtTokenProvider;
 import com.example.pathshala_plus_backend.service.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -47,6 +48,7 @@ public class AuthServiceImpl implements AuthService {
     private final EducationLevelRepository educationLevelRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
+    AuthUtil authUtil;
 
     @Value("${jwt.refresh-token-expiration-days}")
     private Integer refreshTokenExpirationDays;
@@ -136,23 +138,18 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public RefreshTokenResponse refreshAccessToken(String rawRefreshToken) {
-
-        String username = jwtTokenProvider.extractUsername(rawRefreshToken);
-        if (username == null) throw new ResourceNotFoundException("Invalid refresh token");
+    public RefreshResponse refreshAccessToken(RefreshRequest refreshRequest) {
+        String refreshToken = refreshRequest.refreshToken();
+        String username = jwtTokenProvider.extractUsername(refreshToken);
+        if (username == null) {
+            throw new UnauthorizedException("Invalid refresh token");
+        }
 
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        String hashedToken = DigestUtils.sha256Hex(rawRefreshToken);
-        RefreshToken tokenEntity = refreshTokenRepository.findByUser(user)
-                .orElseThrow(() -> new ResourceNotFoundException("Refresh token not found"));
-
-        if (tokenEntity.getIsRevoked() || tokenEntity.getExpiresAt().isBefore(Instant.now())) {
-            throw new UnauthorizedException("Refresh token expired or revoked");
-        }
-        if (!tokenEntity.getToken().equals(hashedToken)) {
-            throw new UnauthorizedException("Invalid refresh token");
+        if (!jwtTokenProvider.verifyRefreshToken(refreshToken, user)) {
+            throw new UnauthorizedException("Invalid or expired refresh token");
         }
 
         CustomUserDetails userDetails = new CustomUserDetails(user);
@@ -160,7 +157,23 @@ public class AuthServiceImpl implements AuthService {
                 userDetails, null, userDetails.getAuthorities()
         );
 
-        String newAccessToken = jwtTokenProvider.generateAccessToken(authentication);
-        return new RefreshTokenResponse(newAccessToken);
+        return new RefreshResponse(jwtTokenProvider.generateAccessToken(authentication));
+    }
+
+    @Override
+    public void logout(RefreshRequest refreshRequest) {
+        String username = jwtTokenProvider.extractUsername(refreshRequest.refreshToken());
+        if (username == null) {
+            throw new UnauthorizedException("Invalid refresh token");
+        }
+
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!jwtTokenProvider.verifyRefreshToken(refreshRequest.refreshToken(), user)) {
+            throw new UnauthorizedException("Invalid or expired refresh token");
+        }
+
+        jwtTokenProvider.invalidateRefreshTokens(user);
     }
 }
