@@ -53,15 +53,15 @@ public class JwtTokenProvider {
     }
 
     public String generateAccessToken(Authentication authentication) {
-        return getToken(authentication, Duration.ofMinutes(accessTokenExpirationMinutes).toMillis(),"ACCESS");
+        return getToken(authentication, Duration.ofMinutes(accessTokenExpirationMinutes).toMillis(), "ACCESS");
     }
 
     public String generateRefreshToken(Authentication authentication) {
         invalidateRefreshTokens(resolveUser(authentication));
-        return getToken(authentication, Duration.ofDays(refreshTokenExpirationDays).toMillis(),"REFRESH");
+        return getToken(authentication, Duration.ofDays(refreshTokenExpirationDays).toMillis(), "REFRESH");
     }
 
-    private String getToken(Authentication authentication, Long expirationMs,String tokenType) {
+    private String getToken(Authentication authentication, Long expirationMs, String tokenType) {
         User user = resolveUser(authentication);
         String username = user.getEmail();
         Long userId = user.getId();
@@ -72,7 +72,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .subject(username)
                 .claim("userId", userId)
-                .claim("type",tokenType)
+                .claim("type", tokenType)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(signingKey)
@@ -101,8 +101,8 @@ public class JwtTokenProvider {
 
         String hashedToken = DigestUtils.sha256Hex(rawToken);
         RefreshToken token = refreshTokenRepository
-                .findByUserAndIsDeletedFalseAndIsRevokedFalse(user).orElseThrow(()-> new ResourceNotFoundException("Refresh token not found for user"));
-        return !token.getIsRevoked() && token.getToken().equals(hashedToken)
+                .findByUserAndIsDeletedFalseAndIsRevokedFalse(user).orElseThrow(() -> new ResourceNotFoundException("Refresh token not found for user"));
+        return token.getToken().equals(hashedToken)
                 && token.getExpiresAt().isAfter(Instant.now());
     }
 

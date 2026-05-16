@@ -40,6 +40,18 @@ spring:
                 user-info-uri: ${GOOGLE_USER_INFO_URI}
                 user-name-attribute: ${GOOGLE_USER_NAME_ATTRIBUTE}
 
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.sender.name: ${MAIL_SENDER_NAME}
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.debug: false
+
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -58,3 +70,5 @@ jwt:
 
 app:
     frontend-url: ${FRONTEND_URL}
+    otp-expiration-minutes: ${OTP_EXPIRATION_MINUTES}
+    reset-token-expiration-minutes: ${RESET_TOKEN_EXPIRATION_MINUTES}

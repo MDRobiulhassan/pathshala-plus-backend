@@ -4,7 +4,11 @@ import com.example.pathshala_plus_backend.dto.request.auth.LoginRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.LogoutRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.RefreshRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
+import com.example.pathshala_plus_backend.dto.request.passwordreset.ForgotPasswordRequest;
+import com.example.pathshala_plus_backend.dto.request.passwordreset.ResetPasswordRequest;
+import com.example.pathshala_plus_backend.dto.request.passwordreset.VerifyOtpRequest;
 import com.example.pathshala_plus_backend.service.AuthService;
+import com.example.pathshala_plus_backend.service.PasswordResetService;
 import com.example.pathshala_plus_backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -22,6 +26,7 @@ public class AuthController {
 
     AuthService authService;
     UserService userService;
+    PasswordResetService passwordResetService;
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
@@ -39,18 +44,35 @@ public class AuthController {
     }
 
     @PostMapping("/oauth2/google")
-    public ResponseEntity<?> socialLogin(){
+    public ResponseEntity<?> socialLogin() {
         return ResponseEntity.ok("/api/v1/auth/oauth2/google");
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> getUserProfile(){
+    public ResponseEntity<?> getUserProfile() {
         return ResponseEntity.ok(userService.getUserProfile());
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody LogoutRequest logoutRequest){
+    public ResponseEntity<?> logout(@RequestBody LogoutRequest logoutRequest) {
         authService.logout(logoutRequest);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest forgotPasswordRequest) {
+        passwordResetService.forgotPassword(forgotPasswordRequest);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest verifyOtpRequest) {
+        return ResponseEntity.ok(passwordResetService.verifyOtpAndGetResetToken(verifyOtpRequest));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest resetPasswordRequest) {
+        passwordResetService.resetPassword(resetPasswordRequest);
         return ResponseEntity.ok().build();
     }
 }
