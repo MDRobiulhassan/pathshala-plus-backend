@@ -5,5 +5,6 @@ public enum OptionLabel {
     B,
     C,
     D,
-    E
+    E,
+    BLANK
 }
