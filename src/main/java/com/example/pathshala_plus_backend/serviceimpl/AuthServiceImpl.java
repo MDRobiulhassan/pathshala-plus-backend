@@ -68,11 +68,6 @@ public class AuthServiceImpl implements AuthService {
                     return new ResourceNotFoundException("Invalid language: " + signupRequest.preferredLanguageCode());
                 });
 
-        if (signupRequest.educationLevelId() != null) {
-            educationLevelRepository.findById(signupRequest.educationLevelId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Education level not found"));
-        }
-
         EducationLevel educationLevel = null;
         if (signupRequest.educationLevelId() != null) {
             educationLevel = educationLevelRepository.findById(signupRequest.educationLevelId())

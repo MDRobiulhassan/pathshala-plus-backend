@@ -29,7 +29,8 @@ public class EducationLevelServiceImpl implements EducationLevelService {
         return educationLevels.stream()
                 .map(educationLevel -> new EducationLevelResponse(
                         educationLevel.getId(),
-                        educationLevel.getName()
+                        educationLevel.getName(),
+                        educationLevel.getDepartment()
                 ))
                 .toList();
     }

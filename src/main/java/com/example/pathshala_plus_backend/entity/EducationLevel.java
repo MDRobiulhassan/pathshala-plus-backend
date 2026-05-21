@@ -1,5 +1,6 @@
 package com.example.pathshala_plus_backend.entity;
 
+import com.example.pathshala_plus_backend.enums.Department;
 import com.example.pathshala_plus_backend.enums.EducationCategory;
 import jakarta.persistence.*;
 import lombok.*;
@@ -20,6 +21,10 @@ public class EducationLevel extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     EducationCategory educationCategory;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    Department department;
 
     @Column(columnDefinition = "TEXT")
     String description;

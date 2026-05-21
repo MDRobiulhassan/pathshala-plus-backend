@@ -62,4 +62,8 @@ public class Question extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "passage_id")
     Passage passage;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "institute_id")
+    Institute institute;
 }
