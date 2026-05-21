@@ -61,6 +61,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 user.getAvatarUrl(),
                 user.getPreferredLanguage().getName(),
                 user.getEducationLevel() != null ? user.getEducationLevel().getName() : null,
+                user.getEducationLevel() != null ? user.getEducationLevel().getDepartment() : null,
                 user.getIsActive(),
                 user.getLastLoginAt(),
                 providers,

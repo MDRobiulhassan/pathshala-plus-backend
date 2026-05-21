@@ -1,5 +1,6 @@
 package com.example.pathshala_plus_backend.dto.response.user;
 
+import com.example.pathshala_plus_backend.enums.Department;
 import com.example.pathshala_plus_backend.enums.Provider;
 import com.example.pathshala_plus_backend.enums.RoleName;
 
@@ -14,6 +15,7 @@ public record UserProfileResponse(
         String avatarUrl,
         String preferredLanguage,
         String educationLevel,
+        Department department,
         Boolean isActive,
         Instant lastLoginAt,
         List<Provider> providers,
