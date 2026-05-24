@@ -46,12 +46,6 @@ public class Question extends AuditableEntity {
     @Column(nullable = false, columnDefinition = "boolean default false")
     Boolean isApproved = false;
 
-    @Column(length = 100,nullable = false)
-    String source;
-
-    @Column(nullable = false,length = 10)
-    String year;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id", nullable = false)
     Subject subject;
@@ -64,6 +58,15 @@ public class Question extends AuditableEntity {
     Passage passage;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "institute_id")
-    Institute institute;
+    @JoinColumn(name = "exam_session_id",nullable = false)
+    ExamSession examSession;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "unit_id")
+    Unit unit;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shift_id")
+    Shift shift;
+
 }
