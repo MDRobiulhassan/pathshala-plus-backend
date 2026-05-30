@@ -14,6 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -33,7 +34,7 @@ public class LanguageServiceImpl implements LanguageService {
                         language.getName(),
                         language.getCode()
                 ))
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Override

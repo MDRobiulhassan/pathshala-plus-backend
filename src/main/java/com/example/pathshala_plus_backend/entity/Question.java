@@ -1,6 +1,7 @@
 package com.example.pathshala_plus_backend.entity;
 
 import com.example.pathshala_plus_backend.enums.Difficulty;
+import com.example.pathshala_plus_backend.enums.ExamType;
 import com.example.pathshala_plus_backend.enums.GenerationType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -68,5 +69,9 @@ public class Question extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shift_id")
     Shift shift;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false,length = 10)
+    ExamType examType;
 
 }

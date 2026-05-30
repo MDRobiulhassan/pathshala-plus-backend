@@ -25,4 +25,7 @@ public class Institute extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "education_level_id")
     EducationLevel educationLevel;
+
+    @Column(length = 500)
+    String logoUrl;
 }

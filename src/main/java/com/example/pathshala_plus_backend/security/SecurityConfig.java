@@ -1,5 +1,7 @@
 package com.example.pathshala_plus_backend.security;
 
+import com.example.pathshala_plus_backend.exceptions.CustomAccessDeniedHandler;
+import com.example.pathshala_plus_backend.exceptions.CustomAuthenticationEntryPoint;
 import com.example.pathshala_plus_backend.handler.OAuth2FailureHandler;
 import com.example.pathshala_plus_backend.handler.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
@@ -26,10 +28,13 @@ public class SecurityConfig {
     private final OAuth2FailureHandler OAuth2FailureHandler;
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity, CustomAccessDeniedHandler accessDeniedHandler, CustomAuthenticationEntryPoint authenticationEntryPoint) throws Exception {
         httpSecurity
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/v3/api-docs/**",
