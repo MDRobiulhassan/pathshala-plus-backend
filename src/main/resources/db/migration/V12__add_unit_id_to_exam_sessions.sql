@@ -1,0 +1,1 @@
+ALTER TABLE exam_sessions ADD COLUMN unit_id BIGINT REFERENCES units(id);

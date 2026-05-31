@@ -29,7 +29,8 @@ public class UnitServiceImpl implements UnitService {
         return units.stream()
                 .map(unit -> new UnitResponse(
                         unit.getId(),
-                        unit.getName()
+                        unit.getName(),
+                        unit.getInstitute().getId()
                 ))
                 .collect(Collectors.toList());
     }
