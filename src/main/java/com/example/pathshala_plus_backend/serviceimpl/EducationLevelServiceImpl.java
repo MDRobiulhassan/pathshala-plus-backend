@@ -33,6 +33,6 @@ public class EducationLevelServiceImpl implements EducationLevelService {
                         educationLevel.getName(),
                         educationLevel.getDepartment()
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

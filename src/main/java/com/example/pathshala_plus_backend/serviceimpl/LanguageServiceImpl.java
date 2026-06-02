@@ -34,7 +34,7 @@ public class LanguageServiceImpl implements LanguageService {
                         language.getName(),
                         language.getCode()
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

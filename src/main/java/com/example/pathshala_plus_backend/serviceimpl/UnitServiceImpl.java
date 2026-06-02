@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -25,13 +24,13 @@ public class UnitServiceImpl implements UnitService {
 
     @Override
     public List<UnitResponse> getAllUnitByInstitute(Long instituteId) {
-        List<Unit> units = unitRepository.findByInstituteId(instituteId);
+        List<Unit> units = unitRepository.findByInstituteIdOrderByNameAsc(instituteId);
         return units.stream()
                 .map(unit -> new UnitResponse(
                         unit.getId(),
                         unit.getName(),
                         unit.getInstitute().getId()
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

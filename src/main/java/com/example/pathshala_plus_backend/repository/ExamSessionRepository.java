@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ExamSessionRepository extends JpaRepository<@NonNull ExamSession, @NonNull Long> {
-    List<ExamSession> findByInstituteIdAndUnitId(Long instituteId, Long unitId);
+    List<ExamSession> findByInstituteIdAndUnitIdOrderByStartYearDesc(Long instituteId, Long unitId);
 
-    List<ExamSession> findByInstituteIdAndUnitIsNull(Long instituteId);
+    List<ExamSession> findByInstituteIdAndUnitIsNullOrderByStartYearDesc(Long instituteId);
 }

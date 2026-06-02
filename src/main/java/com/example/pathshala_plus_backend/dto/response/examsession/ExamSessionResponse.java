@@ -7,6 +7,7 @@ public record ExamSessionResponse(
         Integer startYear,
         Integer endYear,
         Long instituteId,
-        Long unitId
+        Long unitId,
+        Boolean hasShift
 ) {
 }

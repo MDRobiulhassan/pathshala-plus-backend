@@ -4,6 +4,7 @@ public record InstituteResponse(
         Long id,
         String name,
         String shortName,
-        String logoUrl
+        String logoUrl,
+        Boolean hasUnits
 ) {
 }

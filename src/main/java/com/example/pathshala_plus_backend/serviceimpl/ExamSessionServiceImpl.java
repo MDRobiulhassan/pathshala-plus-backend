@@ -3,6 +3,7 @@ package com.example.pathshala_plus_backend.serviceimpl;
 import com.example.pathshala_plus_backend.dto.response.examsession.ExamSessionResponse;
 import com.example.pathshala_plus_backend.entity.ExamSession;
 import com.example.pathshala_plus_backend.repository.ExamSessionRepository;
+import com.example.pathshala_plus_backend.repository.ShiftRepository;
 import com.example.pathshala_plus_backend.service.ExamSessionService;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
@@ -11,8 +12,9 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -22,10 +24,12 @@ import java.util.stream.Collectors;
 public class ExamSessionServiceImpl implements ExamSessionService {
 
     ExamSessionRepository examSessionRepository;
+    ShiftRepository shiftRepository;
 
     @Override
     public List<ExamSessionResponse> getAllExamSessionByInstituteAndUnit(Long instituteId, Long unitId) {
-        List<ExamSession> examSessions = examSessionRepository.findByInstituteIdAndUnitId(instituteId, unitId);
+        List<ExamSession> examSessions = examSessionRepository.findByInstituteIdAndUnitIdOrderByStartYearDesc(instituteId, unitId);
+        Set<Long> examSessionIdsWithShifts = new HashSet<>(shiftRepository.findDistinctExamSessionsIds());
         return examSessions.stream()
                 .map(examSession -> new ExamSessionResponse(
                         examSession.getId(),
@@ -33,14 +37,15 @@ public class ExamSessionServiceImpl implements ExamSessionService {
                         examSession.getStartYear(),
                         examSession.getEndYear(),
                         examSession.getInstitute().getId(),
-                        examSession.getUnit().getId()
+                        examSession.getUnit().getId(),
+                        examSessionIdsWithShifts.contains(examSession.getId())
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public List<ExamSessionResponse> getAllExamSessionByInstitute(Long instituteId) {
-        List<ExamSession> examSessions = examSessionRepository.findByInstituteIdAndUnitIsNull(instituteId);
+        List<ExamSession> examSessions = examSessionRepository.findByInstituteIdAndUnitIsNullOrderByStartYearDesc(instituteId);
         return examSessions.stream()
                 .map(examSession -> new ExamSessionResponse(
                         examSession.getId(),
@@ -48,8 +53,9 @@ public class ExamSessionServiceImpl implements ExamSessionService {
                         examSession.getStartYear(),
                         examSession.getEndYear(),
                         examSession.getInstitute().getId(),
-                        examSession.getUnit() != null ? examSession.getUnit().getId() : null
+                        examSession.getUnit() != null ? examSession.getUnit().getId() : null,
+                        false
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 }
