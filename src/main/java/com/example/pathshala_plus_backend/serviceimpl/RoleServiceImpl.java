@@ -5,9 +5,8 @@ import com.example.pathshala_plus_backend.enums.RoleName;
 import com.example.pathshala_plus_backend.enums.SignupRole;
 import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.repository.RoleRepository;
-import com.example.pathshala_plus_backend.repository.UserRoleRepository;
 import com.example.pathshala_plus_backend.service.RoleService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -18,7 +17,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Transactional
+@Transactional(readOnly = true)
 public class RoleServiceImpl implements RoleService {
 
     RoleRepository roleRepository;

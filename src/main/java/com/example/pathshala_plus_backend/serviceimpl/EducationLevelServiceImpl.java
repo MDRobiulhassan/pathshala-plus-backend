@@ -4,7 +4,7 @@ import com.example.pathshala_plus_backend.dto.response.education.EducationLevelR
 import com.example.pathshala_plus_backend.entity.EducationLevel;
 import com.example.pathshala_plus_backend.repository.EducationLevelRepository;
 import com.example.pathshala_plus_backend.service.EducationLevelService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -13,13 +13,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Transactional
+@Transactional(readOnly = true)
 public class EducationLevelServiceImpl implements EducationLevelService {
 
     EducationLevelRepository educationLevelRepository;

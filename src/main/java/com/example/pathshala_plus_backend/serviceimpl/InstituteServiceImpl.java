@@ -5,7 +5,7 @@ import com.example.pathshala_plus_backend.entity.Institute;
 import com.example.pathshala_plus_backend.repository.InstituteRepository;
 import com.example.pathshala_plus_backend.repository.UnitRepository;
 import com.example.pathshala_plus_backend.service.InstituteService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Transactional
+@Transactional(readOnly = true)
 public class InstituteServiceImpl implements InstituteService {
 
     InstituteRepository instituteRepository;

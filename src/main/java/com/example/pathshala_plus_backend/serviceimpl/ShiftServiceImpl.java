@@ -4,7 +4,7 @@ import com.example.pathshala_plus_backend.dto.response.shift.ShiftResponse;
 import com.example.pathshala_plus_backend.entity.Shift;
 import com.example.pathshala_plus_backend.repository.ShiftRepository;
 import com.example.pathshala_plus_backend.service.ShiftService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -17,7 +17,7 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Transactional
+@Transactional(readOnly = true)
 public class ShiftServiceImpl implements ShiftService {
 
     ShiftRepository shiftRepository;

@@ -5,7 +5,7 @@ import com.example.pathshala_plus_backend.entity.ExamSession;
 import com.example.pathshala_plus_backend.repository.ExamSessionRepository;
 import com.example.pathshala_plus_backend.repository.ShiftRepository;
 import com.example.pathshala_plus_backend.service.ExamSessionService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -20,7 +20,7 @@ import java.util.Set;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Transactional
+@Transactional(readOnly = true)
 public class ExamSessionServiceImpl implements ExamSessionService {
 
     ExamSessionRepository examSessionRepository;
