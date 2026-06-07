@@ -22,7 +22,7 @@ public class QuestionOption extends AuditableEntity {
     @Column(nullable = false, length = 10)
     OptionLabel optionLabel;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     String optionText;
 
     @Column(nullable = false, columnDefinition = "boolean default false")

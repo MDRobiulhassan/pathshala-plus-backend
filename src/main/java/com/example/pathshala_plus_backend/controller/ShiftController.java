@@ -19,7 +19,7 @@ public class ShiftController {
     ShiftService shiftService;
 
     @GetMapping("/units/{unitId}/exam-sessions/{examSessionId}/shifts")
-    public ResponseEntity<?> getAllShiftsByUnitAndExamSession(@PathVariable Long unitId, @PathVariable Long examSessionId) {
+    public ResponseEntity<?> getAllShiftsByUnitAndExamSession(@PathVariable Long unitId, @PathVariable Long examSessionId,@PathVariable Long instituteId) {
         return ResponseEntity.ok(shiftService.getAllShiftByUnitAndExamSession(unitId, examSessionId));
     }
 }

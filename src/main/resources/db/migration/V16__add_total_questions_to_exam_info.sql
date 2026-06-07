@@ -1,0 +1,1 @@
+ALTER TABLE exam_info ADD COLUMN total_questions INTEGER NOT NULL;
