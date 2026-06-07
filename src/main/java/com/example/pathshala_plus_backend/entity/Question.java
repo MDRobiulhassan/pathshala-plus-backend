@@ -33,11 +33,11 @@ public class Question extends AuditableEntity {
     String explanation;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false,length = 10)
+    @Column(nullable = false, length = 10)
     Difficulty difficulty;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false,length = 20)
+    @Column(nullable = false, length = 20)
     GenerationType generationType;
 
     @Column(length = 500)
@@ -58,15 +58,7 @@ public class Question extends AuditableEntity {
     Passage passage;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "exam_session_id",nullable = false)
-    ExamSession examSession;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "unit_id")
-    Unit unit;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "shift_id")
-    Shift shift;
+    @JoinColumn(name = "exam_info_id", nullable = false)
+    private ExamInfo examInfo;
 
 }
