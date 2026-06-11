@@ -11,7 +11,5 @@ public record QuestionResponse(
         String explanation,
         Difficulty difficulty,
         Boolean isApproved,
-        QuestionPassageResponse passage,
         List<QuestionOptionResponse> options
-) {
-}
+) {}

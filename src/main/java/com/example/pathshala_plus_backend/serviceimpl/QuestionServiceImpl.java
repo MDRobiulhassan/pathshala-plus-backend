@@ -1,10 +1,7 @@
 package com.example.pathshala_plus_backend.serviceimpl;
 
 import com.example.pathshala_plus_backend.dto.response.question.*;
-import com.example.pathshala_plus_backend.entity.Chapter;
-import com.example.pathshala_plus_backend.entity.ExamInfo;
-import com.example.pathshala_plus_backend.entity.Question;
-import com.example.pathshala_plus_backend.entity.Subject;
+import com.example.pathshala_plus_backend.entity.*;
 import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.repository.ExamInfoRepository;
 import com.example.pathshala_plus_backend.repository.QuestionRepository;
@@ -67,7 +64,7 @@ public class QuestionServiceImpl implements QuestionService {
                     return new ChapterQuestionsResponse(
                             noChapter ? null : chapter.getId(),
                             noChapter ? null : chapter.getName(),
-                            e.getValue().stream().map(this::toQuestionResponse).toList()
+                            toPassageResponses(e.getValue())
                     );
                 })
                 .toList();
@@ -103,18 +100,29 @@ public class QuestionServiceImpl implements QuestionService {
                 question.getExplanation(),
                 question.getDifficulty(),
                 question.getIsApproved(),
-                toPassageResponse(question),
                 toOptionResponses(question)
         );
     }
 
-    private QuestionPassageResponse toPassageResponse(Question question) {
-        if (question.getPassage() == null) return null;
-        return new QuestionPassageResponse(
-                question.getPassage().getId(),
-                question.getPassage().getPassageText(),
-                question.getPassage().getImageUrl()
-        );
+    private List<PassageQuestionsResponse> toPassageResponses(List<Question> questions) {
+        return questions.stream()
+                .collect(Collectors.groupingBy(
+                        question -> question.getPassage() != null ? question.getPassage().getId() : -1L,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ))
+                .values().stream()
+                .map(questionList -> {
+                    Question first = questionList.get(0);
+                    Passage passage = first.getPassage();
+                    return new PassageQuestionsResponse(
+                            passage != null ? passage.getId() : null,
+                            passage != null ? passage.getPassageText() : null,
+                            passage != null ? passage.getImageUrl() : null,
+                            questionList.stream().map(this::toQuestionResponse).toList()
+                    );
+                })
+                .toList();
     }
 
     private List<QuestionOptionResponse> toOptionResponses(Question question) {

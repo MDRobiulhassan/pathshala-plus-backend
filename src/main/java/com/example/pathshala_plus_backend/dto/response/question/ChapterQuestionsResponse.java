@@ -5,6 +5,5 @@ import java.util.List;
 public record ChapterQuestionsResponse(
         Long chapterId,
         String chapterName,
-        List<QuestionResponse> questions
-) {
-}
+        List<PassageQuestionsResponse> passages
+) {}
