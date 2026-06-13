@@ -70,8 +70,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new ApiResponse<>(apiError), HttpStatus.BAD_REQUEST);
     }
 
-
-
     @ExceptionHandler(InvalidResetTokenException.class)
     public ResponseEntity<?> handleInvalidResetToken(InvalidResetTokenException exception) {
         ApiError apiError = ApiError.builder()
@@ -80,8 +78,6 @@ public class GlobalExceptionHandler {
                 .build();
         return new ResponseEntity<>(new ApiResponse<>(apiError), HttpStatus.BAD_REQUEST);
     }
-
-
 
 
     @ExceptionHandler(Exception.class)
