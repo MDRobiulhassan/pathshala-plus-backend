@@ -8,6 +8,8 @@ import com.example.pathshala_plus_backend.dto.response.passwordreset.VerifyOtpRe
 import com.example.pathshala_plus_backend.entity.PasswordResetOtp;
 import com.example.pathshala_plus_backend.entity.User;
 import com.example.pathshala_plus_backend.event.PasswordResetOtpEvent;
+import com.example.pathshala_plus_backend.exceptions.BadRequestException;
+import com.example.pathshala_plus_backend.exceptions.InvalidResetTokenException;
 import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.repository.PasswordResetOtpRepository;
 import com.example.pathshala_plus_backend.repository.UserRepository;
@@ -105,18 +107,23 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     }
 
     private PasswordResetOtp validateResetRequest(ResetPasswordRequest resetPasswordRequest) {
+
         if (!resetPasswordRequest.newPassword().equals(resetPasswordRequest.confirmPassword())) {
-            throw new RuntimeException("Passwords do not match.");
+            throw new BadRequestException("Passwords do not match");
         }
 
         PasswordResetOtp resetOtp = passwordResetOtpRepository
-                .findByResetTokenAndIsUsedFalseAndIsDeletedFalse(DigestUtils.sha256Hex(resetPasswordRequest.resetToken()))
-                .orElseThrow(() -> new RuntimeException("Invalid reset token."));
+                .findByResetTokenAndIsUsedFalseAndIsDeletedFalse(
+                        DigestUtils.sha256Hex(resetPasswordRequest.resetToken()))
+                .orElseThrow(() -> new InvalidResetTokenException("Invalid or expired token"));
 
         if (resetOtp.getResetTokenExpiresAt().isBefore(Instant.now())) {
-            throw new RuntimeException("Reset token is invalid or expired.");
+            throw new InvalidResetTokenException("Invalid or expired token");
         }
 
         return resetOtp;
+
     }
-}
+
+    }
+
