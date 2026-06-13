@@ -2,6 +2,7 @@ package com.example.pathshala_plus_backend.advices;
 
 import com.example.pathshala_plus_backend.enums.SignupRole;
 import com.example.pathshala_plus_backend.exceptions.*;
+import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;

@@ -1,0 +1,1 @@
+ALTER TABLE questions ADD COLUMN exam_type VARCHAR(10) NOT NULL;

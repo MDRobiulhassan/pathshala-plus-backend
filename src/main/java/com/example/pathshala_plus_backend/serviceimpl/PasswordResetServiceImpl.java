@@ -15,6 +15,7 @@ import com.example.pathshala_plus_backend.repository.PasswordResetOtpRepository;
 import com.example.pathshala_plus_backend.repository.UserRepository;
 import com.example.pathshala_plus_backend.service.PasswordResetService;
 import com.example.pathshala_plus_backend.util.OtpGenerator;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -31,6 +32,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class PasswordResetServiceImpl implements PasswordResetService {
 
     private final UserRepository userRepository;

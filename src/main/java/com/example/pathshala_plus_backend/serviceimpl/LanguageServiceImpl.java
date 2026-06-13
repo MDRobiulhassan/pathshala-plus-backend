@@ -5,7 +5,7 @@ import com.example.pathshala_plus_backend.entity.Language;
 import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.repository.LanguageRepository;
 import com.example.pathshala_plus_backend.service.LanguageService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -14,12 +14,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Transactional
+@Transactional(readOnly = true)
 public class LanguageServiceImpl implements LanguageService {
 
     LanguageRepository languageRepository;

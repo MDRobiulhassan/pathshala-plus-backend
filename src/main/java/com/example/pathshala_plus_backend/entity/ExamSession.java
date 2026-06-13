@@ -24,4 +24,8 @@ public class ExamSession extends AuditableEntity {
     Integer startYear;
 
     Integer endYear;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "unit_id")
+    Unit unit;
 }

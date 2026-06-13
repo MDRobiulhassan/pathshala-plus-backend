@@ -20,7 +20,7 @@ import com.example.pathshala_plus_backend.repository.*;
 import com.example.pathshala_plus_backend.security.CustomUserDetails;
 import com.example.pathshala_plus_backend.security.JwtTokenProvider;
 import com.example.pathshala_plus_backend.service.AuthService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

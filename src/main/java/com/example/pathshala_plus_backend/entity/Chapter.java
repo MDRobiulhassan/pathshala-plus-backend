@@ -13,6 +13,8 @@ import lombok.experimental.FieldDefaults;
 @Table(name = "chapters")
 public class Chapter extends AuditableEntity {
 
+    public static final Chapter NONE = new Chapter();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id", nullable = false)
     Subject subject;

@@ -10,6 +10,7 @@ import com.example.pathshala_plus_backend.repository.UserRepository;
 import com.example.pathshala_plus_backend.security.AuthUtil;
 import com.example.pathshala_plus_backend.security.CustomUserDetails;
 import com.example.pathshala_plus_backend.service.UserService;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AccessLevel;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService, UserDetailsService {
 
     UserRepository userRepository;
