@@ -1,6 +1,5 @@
 package com.example.pathshala_plus_backend.advices;
-
-import com.example.pathshala_plus_backend.enums.SignupRole;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.example.pathshala_plus_backend.exceptions.*;
 import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
@@ -63,13 +62,34 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new ApiResponse<>(apiError), HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(HttpMessageConversionException.class)
-    public ResponseEntity<?> handleInvalidEnum(HttpMessageConversionException exception) {
-        String validRoles = String.join(", ",
-                Arrays.stream(SignupRole.values()).map(Enum::name).toList());
+
+    @ExceptionHandler(InvalidFormatException.class)
+    public ResponseEntity<?> handleInvalidFormat(InvalidFormatException exception) {
+        String invalidValue = exception.getValue().toString();
+        String targetType = exception.getTargetType().getSimpleName();
+
+        String message;
+        if (exception.getTargetType().isEnum()) {
+            String validValues = Arrays.stream(exception.getTargetType().getEnumConstants())
+                    .map(Object::toString)
+                    .collect(Collectors.joining(", "));
+            message = "Invalid value: '" + invalidValue + "' for '" + targetType + "'. Valid values: " + validValues;
+        } else {
+            message = "Invalid value: '" + invalidValue + "' for type: " + targetType;
+        }
+
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.BAD_REQUEST)
-                .message("Invalid role value. Valid roles: " + validRoles)
+                .message(message)
+                .build();
+        return new ResponseEntity<>(new ApiResponse<>(apiError), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(HttpMessageConversionException.class)
+    public ResponseEntity<?> handleMessageConversion(HttpMessageConversionException exception) {
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.BAD_REQUEST)
+                .message("Malformed request body or unsupported value")
                 .build();
         return new ResponseEntity<>(new ApiResponse<>(apiError), HttpStatus.BAD_REQUEST);
     }
