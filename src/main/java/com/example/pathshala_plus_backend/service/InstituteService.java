@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface InstituteService {
     List<InstituteResponse> getAllInstitutes();
+    List<InstituteResponse> getInstitutesByEducationLevel(Long educationLevelId);
 }
