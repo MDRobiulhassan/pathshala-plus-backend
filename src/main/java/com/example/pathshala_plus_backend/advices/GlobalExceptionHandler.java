@@ -99,8 +99,8 @@ public class GlobalExceptionHandler {
                 .message(exception.getMessage())
                 .build();
         return new ResponseEntity<>(new ApiResponse<>(apiError), HttpStatus.BAD_REQUEST);
-    }
 
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleInternalServerError(Exception exception) {
