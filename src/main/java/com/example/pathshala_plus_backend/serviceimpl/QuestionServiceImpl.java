@@ -1,18 +1,27 @@
 package com.example.pathshala_plus_backend.serviceimpl;
 
-import com.example.pathshala_plus_backend.dto.response.question.*;
+import com.example.pathshala_plus_backend.dto.response.question.examinfoquestion.*;
+import com.example.pathshala_plus_backend.dto.response.question.subjectquestion.PassageWithTagResponse;
+import com.example.pathshala_plus_backend.dto.response.question.subjectquestion.QuestionWithTagResponse;
+import com.example.pathshala_plus_backend.dto.response.question.subjectquestion.SubjectBrowseResponse;
 import com.example.pathshala_plus_backend.entity.*;
 import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.repository.ExamInfoRepository;
 import com.example.pathshala_plus_backend.repository.QuestionRepository;
+import com.example.pathshala_plus_backend.repository.SubjectRepository;
 import com.example.pathshala_plus_backend.service.QuestionService;
 import lombok.AccessLevel;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +36,7 @@ public class QuestionServiceImpl implements QuestionService {
 
     QuestionRepository questionRepository;
     ExamInfoRepository examInfoRepository;
+    SubjectRepository subjectRepository;
 
     @Override
     public ExamQuestionsResponse getQuestionsByExamInfo(Long examInfoId) {
@@ -43,6 +53,32 @@ public class QuestionServiceImpl implements QuestionService {
                 toExamInfoResponse(examInfo),
                 questions.get(0).getLanguage().getCode(),
                 toSubjectResponses(questions)
+        );
+    }
+
+    @Override
+    public SubjectBrowseResponse getQuestionsBySubject(Long subjectId, int page, int size) {
+        Subject subject = subjectRepository.findById(subjectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subject not found"));
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<@NonNull Long> idPage = questionRepository.findIdsBySubjectId(subjectId, pageable);
+
+        List<PassageWithTagResponse> passages = List.of();
+        if (!idPage.isEmpty()) {
+            List<Question> questions = questionRepository.findByIdsWithDetails(idPage.getContent());
+
+            passages = groupByPassage(questions);
+        }
+
+        return new SubjectBrowseResponse(
+                subject.getId(),
+                subject.getName(),
+                idPage.getNumber(),
+                idPage.getSize(),
+                idPage.getTotalElements(),
+                idPage.getTotalPages(),
+                passages
         );
     }
 
@@ -134,6 +170,62 @@ public class QuestionServiceImpl implements QuestionService {
                         option.getIsCorrect(),
                         option.getImageUrl()
                 ))
+                .toList();
+    }
+
+
+    private QuestionWithTagResponse toQuestionWithTagResponse(Question question) {
+        ExamInfo examInfo = question.getExamInfo();
+        ExamSession examSession = examInfo.getExamSession();
+
+        List<QuestionOptionResponse> options = question.getOptions().stream()
+                .map(o -> new QuestionOptionResponse(
+                        o.getId(),
+                        o.getOptionLabel(),
+                        o.getOptionText(),
+                        o.getIsCorrect(),
+                        o.getImageUrl()
+                ))
+                .toList();
+
+        return new QuestionWithTagResponse(
+                question.getId(),
+                question.getQuestionText(),
+                question.getImageUrl(),
+                question.getExplanation(),
+                question.getDifficulty(),
+                question.getIsApproved(),
+                examSession.getInstitute().getName(),
+                examInfo.getUnit() != null ? examInfo.getUnit().getName() : null,
+                examSession.getSessionLabel(),
+                options
+        );
+    }
+
+    private List<PassageWithTagResponse> groupByPassage(List<Question> questions) {
+        Map<Long, List<Question>> grouped = new LinkedHashMap<>();
+
+        for (Question q : questions) {
+            Long key = q.getPassage() != null ? q.getPassage().getId() : -q.getId();
+            grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(q);
+        }
+
+        return grouped.values().stream()
+                .map(group -> {
+                    Question first = group.get(0);
+                    Passage passage = first.getPassage();
+
+                    List<QuestionWithTagResponse> questionResponses = group.stream()
+                            .map(this::toQuestionWithTagResponse)
+                            .toList();
+
+                    return new PassageWithTagResponse(
+                            passage != null ? passage.getId() : null,
+                            passage != null ? passage.getPassageText() : null,
+                            passage != null ? passage.getImageUrl() : null,
+                            questionResponses
+                    );
+                })
                 .toList();
     }
 }

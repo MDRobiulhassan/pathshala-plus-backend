@@ -5,10 +5,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,5 +18,10 @@ public class QuestionController {
     @GetMapping("/exam-info/{examInfoId}/questions")
     public ResponseEntity<?> getQuestionsByExamInfo(@PathVariable Long examInfoId) {
         return ResponseEntity.ok(questionService.getQuestionsByExamInfo(examInfoId));
+    }
+
+    @GetMapping("questions/subject/{subjectId}")
+    public ResponseEntity<?> getQuestionsBySubject(@PathVariable Long subjectId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(questionService.getQuestionsBySubject(subjectId, page, size));
     }
 }
