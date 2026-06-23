@@ -43,6 +43,7 @@ public class AuthController {
         return ResponseEntity.ok(authService.refreshAccessToken(refreshRequest));
     }
 
+    // disable in production
     @PostMapping("/oauth2/google")
     public ResponseEntity<?> socialLogin() {
         return ResponseEntity.ok("/api/v1/auth/oauth2/google");
