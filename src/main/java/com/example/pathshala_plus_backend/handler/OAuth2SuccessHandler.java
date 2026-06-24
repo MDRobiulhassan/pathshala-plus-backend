@@ -97,11 +97,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String rawAccessToken = jwtTokenProvider.generateAccessToken(authentication);
         String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
-        String hashedRefresh = DigestUtils.sha256Hex(rawRefreshToken);
-
         RefreshToken refreshToken = RefreshTokenMapper.toRefreshToken(
                 user,
-                hashedRefresh,
+                rawRefreshToken,
                 Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS)
         );
 

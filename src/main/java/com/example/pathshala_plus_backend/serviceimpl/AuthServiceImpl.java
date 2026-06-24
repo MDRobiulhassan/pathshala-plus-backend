@@ -4,11 +4,8 @@ import com.example.pathshala_plus_backend.Mapper.RefreshTokenMapper;
 import com.example.pathshala_plus_backend.Mapper.UserMapper;
 import com.example.pathshala_plus_backend.Mapper.UserRoleMapper;
 import com.example.pathshala_plus_backend.dto.request.auth.LoginRequest;
-import com.example.pathshala_plus_backend.dto.request.auth.LogoutRequest;
-import com.example.pathshala_plus_backend.dto.request.auth.RefreshRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
 import com.example.pathshala_plus_backend.dto.response.auth.LoginResponse;
-import com.example.pathshala_plus_backend.dto.response.auth.RefreshResponse;
 import com.example.pathshala_plus_backend.dto.response.auth.SignupResponse;
 import com.example.pathshala_plus_backend.entity.*;
 import com.example.pathshala_plus_backend.enums.RoleName;
@@ -17,10 +14,13 @@ import com.example.pathshala_plus_backend.exceptions.DuplicateResourceException;
 import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.exceptions.UnauthorizedException;
 import com.example.pathshala_plus_backend.repository.*;
+import com.example.pathshala_plus_backend.security.AuthenticationCookieWriter;
 import com.example.pathshala_plus_backend.security.CustomUserDetails;
 import com.example.pathshala_plus_backend.security.JwtTokenProvider;
 import com.example.pathshala_plus_backend.service.AuthService;
-import org.springframework.transaction.annotation.Transactional;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +29,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -48,12 +49,13 @@ public class AuthServiceImpl implements AuthService {
     private final EducationLevelRepository educationLevelRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
+    private final AuthenticationCookieWriter authenticationCookieWriter;
 
     @Value("${jwt.refresh-token-expiration-days}")
     private Integer refreshTokenExpirationDays;
 
     @Override
-    public SignupResponse signup(SignupRequest signupRequest) {
+    public SignupResponse signup(SignupRequest signupRequest, HttpServletResponse response) {
         userRepository.findByEmail(signupRequest.email()).ifPresent(user -> {
             throw new DuplicateResourceException("User with email " + signupRequest.email() + " already exists");
         });
@@ -96,11 +98,12 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenRepository.save(refreshTokenEntity);
 
         log.info("User registered successfully: {}", savedUser.getEmail());
-        return new SignupResponse(savedUser.getId(), rawRefreshToken, rawAccessToken, roleName);
+        authenticationCookieWriter.addAuthCookies(response, rawAccessToken, rawRefreshToken);
+        return new SignupResponse(savedUser.getId(), roleName);
     }
 
     @Override
-    public LoginResponse login(LoginRequest loginRequest) {
+    public LoginResponse login(LoginRequest loginRequest, HttpServletResponse response) {
         User user = userRepository.findByEmail(loginRequest.email())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + loginRequest.email()));
 
@@ -126,19 +129,23 @@ public class AuthServiceImpl implements AuthService {
         assert userDetails != null;
         RoleName role = user.getUserRoles().get(0).getRole().getName();
 
-        return new LoginResponse(userDetails.getId(), rawRefreshToken, rawAccessToken, role);
+        authenticationCookieWriter.addAuthCookies(response, rawAccessToken, rawRefreshToken);
+        return new LoginResponse(userDetails.getId(), role);
     }
 
     @Override
-    public RefreshResponse refreshAccessToken(RefreshRequest refreshRequest) {
-        String refreshToken = refreshRequest.refreshToken();
+    public void refreshAccessToken(HttpServletRequest request, HttpServletResponse response) {
+        String refreshToken = extractRefreshToken(request);
+        if (refreshToken == null) {
+            throw new UnauthorizedException("Refresh token missing");
+        }
+
         String username = jwtTokenProvider.extractUsername(refreshToken);
         if (username == null) {
             throw new UnauthorizedException("Invalid refresh token");
         }
 
-        User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        User user = userRepository.findByEmail(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (!jwtTokenProvider.verifyRefreshToken(refreshToken, user)) {
             throw new UnauthorizedException("Invalid or expired refresh token");
@@ -149,23 +156,41 @@ public class AuthServiceImpl implements AuthService {
                 userDetails, null, userDetails.getAuthorities()
         );
 
-        return new RefreshResponse(jwtTokenProvider.generateAccessToken(authentication));
+        authenticationCookieWriter.addAccessCookie(response, jwtTokenProvider.generateAccessToken(authentication));
     }
 
     @Override
-    public void logout(LogoutRequest logoutRequest) {
-        String username = jwtTokenProvider.extractUsername(logoutRequest.refreshToken());
+    public void logout(HttpServletRequest request, HttpServletResponse response) {
+        String refreshToken = extractRefreshToken(request);
+
+        if (refreshToken == null) {
+            throw new UnauthorizedException("Refresh token missing");
+        }
+
+        String username = jwtTokenProvider.extractUsername(refreshToken);
+
         if (username == null) {
             throw new UnauthorizedException("Invalid refresh token");
         }
 
-        User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        if (!jwtTokenProvider.verifyRefreshToken(logoutRequest.refreshToken(), user)) {
-            throw new UnauthorizedException("Invalid or expired refresh token");
-        }
+        User user = userRepository.findByEmail(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         jwtTokenProvider.invalidateRefreshTokens(user);
+
+        authenticationCookieWriter.clearAuthCookies(response);
+    }
+
+    private String extractRefreshToken(HttpServletRequest request) {
+        if (request.getCookies() == null) {
+            return null;
+        }
+
+        for (Cookie cookie : request.getCookies()) {
+            if ("refresh_token".equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+
+        return null;
     }
 }

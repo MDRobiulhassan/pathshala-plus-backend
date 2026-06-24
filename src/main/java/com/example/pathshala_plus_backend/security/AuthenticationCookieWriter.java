@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 @Component
 @RequiredArgsConstructor
@@ -26,6 +25,14 @@ public class AuthenticationCookieWriter {
 
     public void addRefreshCookie(HttpServletResponse response, String refreshToken) {
         ResponseCookie refreshCookie = cookieUtil.createRefreshCookie(refreshToken);
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+    }
+
+    public void clearAuthCookies(HttpServletResponse response) {
+        ResponseCookie accessCookie = cookieUtil.clearAccessCookie();
+        ResponseCookie refreshCookie = cookieUtil.clearRefreshCookie();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
 }

@@ -1,8 +1,6 @@
 package com.example.pathshala_plus_backend.controller;
 
 import com.example.pathshala_plus_backend.dto.request.auth.LoginRequest;
-import com.example.pathshala_plus_backend.dto.request.auth.LogoutRequest;
-import com.example.pathshala_plus_backend.dto.request.auth.RefreshRequest;
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
 import com.example.pathshala_plus_backend.dto.request.passwordreset.ForgotPasswordRequest;
 import com.example.pathshala_plus_backend.dto.request.passwordreset.ResetPasswordRequest;
@@ -10,6 +8,8 @@ import com.example.pathshala_plus_backend.dto.request.passwordreset.VerifyOtpReq
 import com.example.pathshala_plus_backend.service.AuthService;
 import com.example.pathshala_plus_backend.service.PasswordResetService;
 import com.example.pathshala_plus_backend.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -29,18 +29,19 @@ public class AuthController {
     PasswordResetService passwordResetService;
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.signup(signupRequest));
+    public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest, HttpServletResponse response) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.signup(signupRequest, response));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
-        return ResponseEntity.ok(authService.login(loginRequest));
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse response) {
+        return ResponseEntity.ok(authService.login(loginRequest, response));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody RefreshRequest refreshRequest) {
-        return ResponseEntity.ok(authService.refreshAccessToken(refreshRequest));
+    public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
+        authService.refreshAccessToken(request, response);
+        return ResponseEntity.ok().build();
     }
 
     // disable in production
@@ -55,8 +56,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody LogoutRequest logoutRequest) {
-        authService.logout(logoutRequest);
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+        authService.logout(request, response);
         return ResponseEntity.ok().build();
     }
 
