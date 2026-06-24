@@ -11,11 +11,10 @@ import com.example.pathshala_plus_backend.repository.RefreshTokenRepository;
 import com.example.pathshala_plus_backend.repository.UserOauthAccountRepository;
 import com.example.pathshala_plus_backend.repository.UserRepository;
 import com.example.pathshala_plus_backend.repository.UserRoleRepository;
+import com.example.pathshala_plus_backend.security.AuthenticationCookieWriter;
 import com.example.pathshala_plus_backend.security.JwtTokenProvider;
-import com.example.pathshala_plus_backend.service.CookieService;
 import com.example.pathshala_plus_backend.service.LanguageService;
 import com.example.pathshala_plus_backend.service.RoleService;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
@@ -44,7 +43,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final RefreshTokenRepository refreshTokenRepository;
     private final RoleService roleService;
     private final UserRoleRepository userRoleRepository;
-    private final CookieService cookieService;
+    private final AuthenticationCookieWriter authenticationCookieWriter;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -108,7 +107,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         refreshTokenRepository.save(refreshToken);
 
-        cookieService.addAuthCookies(response, rawAccessToken, rawRefreshToken);
+        authenticationCookieWriter.addAuthCookies(response, rawAccessToken, rawRefreshToken);
 
         response.sendRedirect(frontendUrl + "/auth/callback");
     }
