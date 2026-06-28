@@ -13,9 +13,9 @@ import com.example.pathshala_plus_backend.exceptions.InvalidResetTokenException;
 import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.repository.PasswordResetOtpRepository;
 import com.example.pathshala_plus_backend.repository.UserRepository;
+import com.example.pathshala_plus_backend.security.JwtTokenProvider;
 import com.example.pathshala_plus_backend.service.PasswordResetService;
 import com.example.pathshala_plus_backend.util.OtpGenerator;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -39,6 +40,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final PasswordResetOtpRepository passwordResetOtpRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Value("${app.otp-expiration-minutes}")
     private Integer otpExpirationMinutes;
@@ -76,7 +78,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         User user = resetToken.getUser();
         user.setPassword(passwordEncoder.encode(resetTokenRequest.newPassword()));
         userRepository.save(user);
-
+        jwtTokenProvider.invalidateRefreshTokens(user);
         resetToken.setIsUsed(true);
         resetToken.softDelete(user.getId());
         passwordResetOtpRepository.save(resetToken);
@@ -127,5 +129,5 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
     }
 
-    }
+}
 

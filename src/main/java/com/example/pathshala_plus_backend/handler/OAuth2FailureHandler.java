@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 
@@ -19,11 +20,14 @@ public class OAuth2FailureHandler implements AuthenticationFailureHandler {
     @Override
     public void onAuthenticationFailure(@NonNull HttpServletRequest request,
                                         @NonNull HttpServletResponse response,
-                                        AuthenticationException exception) throws IOException {
-        String reason = "auth_failed";
-        if (exception.getMessage() != null && exception.getMessage().contains("email_conflict")) {
-            reason = "email_conflict";
-        }
-        response.sendRedirect(frontendUrl + "/api/v1/auth/callback?error=" + reason);
+                                        @NonNull AuthenticationException exception) throws IOException {
+
+        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl)
+                .path("/auth/callback")
+                .queryParam("error", "oauth_failed")
+                .build()
+                .toUriString();
+
+        response.sendRedirect(targetUrl);
     }
 }

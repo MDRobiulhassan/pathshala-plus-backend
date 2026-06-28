@@ -100,6 +100,7 @@ public class JwtTokenProvider {
         }
 
         String hashedToken = DigestUtils.sha256Hex(rawToken);
+
         RefreshToken token = refreshTokenRepository
                 .findByUserAndIsDeletedFalseAndIsRevokedFalse(user).orElseThrow(() -> new ResourceNotFoundException("Refresh token not found for user"));
         return token.getToken().equals(hashedToken)

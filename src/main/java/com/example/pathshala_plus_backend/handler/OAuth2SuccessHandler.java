@@ -11,11 +11,10 @@ import com.example.pathshala_plus_backend.repository.RefreshTokenRepository;
 import com.example.pathshala_plus_backend.repository.UserOauthAccountRepository;
 import com.example.pathshala_plus_backend.repository.UserRepository;
 import com.example.pathshala_plus_backend.repository.UserRoleRepository;
+import com.example.pathshala_plus_backend.security.AuthenticationCookieWriter;
 import com.example.pathshala_plus_backend.security.JwtTokenProvider;
 import com.example.pathshala_plus_backend.service.LanguageService;
 import com.example.pathshala_plus_backend.service.RoleService;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
@@ -31,6 +30,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -43,6 +43,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final RefreshTokenRepository refreshTokenRepository;
     private final RoleService roleService;
     private final UserRoleRepository userRoleRepository;
+    private final AuthenticationCookieWriter authenticationCookieWriter;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -51,59 +52,61 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private int refreshTokenExpirationDays;
 
     @Override
-    public void onAuthenticationSuccess(@NonNull HttpServletRequest request,@NonNull HttpServletResponse response,@NonNull Authentication authentication) throws IOException, ServletException {
+    public void onAuthenticationSuccess(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull Authentication authentication) throws IOException {
         OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
         DefaultOAuth2User oAuth2User = (DefaultOAuth2User) token.getPrincipal();
 
-        assert oAuth2User != null;
-        String email     = oAuth2User.getAttribute("email");
-        String name      = oAuth2User.getAttribute("name");
-        String sub       = oAuth2User.getAttribute("sub");
+        if (oAuth2User == null) {
+            throw new IllegalStateException("OAuth2 user is null");
+        }
+
+        String email = (String) Optional.ofNullable(oAuth2User.getAttribute("email"))
+                .orElseThrow(() -> new IllegalStateException("Email not provided by OAuth provider"));
+
+        String name = oAuth2User.getAttribute("name");
+        String sub = oAuth2User.getAttribute("sub");
         String avatarUrl = oAuth2User.getAttribute("picture");
+
+        if (sub == null) {
+            throw new IllegalStateException("OAuth provider id (sub) is missing");
+        }
 
         User user = userRepository.findByEmail(email).orElse(null);
 
         if (user == null) {
-            User newUser = UserMapper.fromOauth2UserInfo(name, email,languageService.findLanguageByCode("bn"),avatarUrl);
-            user = userRepository.save(newUser);
-
-            UserOauthAccount oauthAccount = OauthUserMapper.toUserOauthAccount(user, Provider.GOOGLE, oAuth2User.getAttribute("sub"));
-            userOauthAccountRepository.save(oauthAccount);
+            user = UserMapper.fromOauth2UserInfo(
+                    name,
+                    email,
+                    languageService.findLanguageByCode("bn"),
+                    avatarUrl
+            );
+            user = userRepository.save(user);
 
             Role role = roleService.findRoleByName(SignupRole.STUDENT);
             UserRole userRole = UserRoleMapper.toUserRole(user, role);
             userRoleRepository.save(userRole);
-
-        } else{
-            boolean hasOauthAccount = userOauthAccountRepository.existsByUserIdAndProvider(user.getId(), Provider.GOOGLE);
-
-            if(!hasOauthAccount){
-                response.sendRedirect(frontendUrl+"/api/v1/auth/callback?error=email_conflict");
-                return;
-            }
         }
 
-        String rawAccessToken  = jwtTokenProvider.generateAccessToken(authentication);
-        String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
-        String hashedRefresh   = DigestUtils.sha256Hex(rawRefreshToken);
+        boolean hasOauthAccount = userOauthAccountRepository.existsByUserIdAndProvider(user.getId(), Provider.GOOGLE);
 
-        RefreshToken refreshToken = RefreshTokenMapper.toRefreshToken(user,hashedRefresh,Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
+        if (!hasOauthAccount) {
+            UserOauthAccount oauthAccount = OauthUserMapper.toUserOauthAccount(user, Provider.GOOGLE, sub);
+            userOauthAccountRepository.save(oauthAccount);
+        }
+
+        String rawAccessToken = jwtTokenProvider.generateAccessToken(authentication);
+        String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
+
+        RefreshToken refreshToken = RefreshTokenMapper.toRefreshToken(
+                user,
+                rawRefreshToken,
+                Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS)
+        );
+
         refreshTokenRepository.save(refreshToken);
 
-        Cookie accessTokenCookie = new Cookie("access_token", rawAccessToken);
-        accessTokenCookie.setHttpOnly(true);
-        accessTokenCookie.setSecure(true);
-        accessTokenCookie.setPath("/");
-        accessTokenCookie.setMaxAge(180);
-        response.addCookie(accessTokenCookie);
+        authenticationCookieWriter.addAuthCookies(response, rawAccessToken, rawRefreshToken);
 
-        Cookie refreshTokenCookie = new Cookie("refresh_token", rawRefreshToken);
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(true);
-        refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setMaxAge(refreshTokenExpirationDays * 24 * 60 * 60);
-        response.addCookie(refreshTokenCookie);
-
-        response.sendRedirect(frontendUrl + "/ap1/v1/auth/callback");
+        response.sendRedirect(frontendUrl + "/auth/callback");
     }
 }
