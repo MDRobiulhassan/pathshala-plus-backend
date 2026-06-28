@@ -64,6 +64,19 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Passwords do not match");
         }
 
+        if (!signupRequest.name().matches("^[A-Za-z\\s]{3,100}$")) {
+            throw new BadRequestException("Name must contain only letters and spaces, 3–100 characters");
+        }
+
+        if (!signupRequest.password().matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).{8,50}$")) {
+            throw new BadRequestException("Password must contain uppercase, lowercase, number, and special character");
+        }
+
+        if (signupRequest.role() == null || signupRequest.role().name().trim().isEmpty()) {
+            throw new BadRequestException("Invalid role value. Allowed values: STUDENT, TEACHER, CONTENT_ADMIN, SUPER_ADMIN");
+        }
+
+
         Language language = languageRepository.findByCode(signupRequest.preferredLanguageCode())
                 .orElseThrow(() -> {
                     log.error("Language not found for code: '{}'", signupRequest.preferredLanguageCode());
