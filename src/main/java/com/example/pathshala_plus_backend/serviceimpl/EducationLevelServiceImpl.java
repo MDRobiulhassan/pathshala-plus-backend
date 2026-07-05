@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -31,25 +32,26 @@ public class EducationLevelServiceImpl implements EducationLevelService {
     public List<EducationLevelResponse> getAllEducationLevels() {
 
         List<EducationLevel> educationLevels =
-                educationLevelRepository.findAll(Sort.by("id"));
+                educationLevelRepository.findAll();
 
-        return educationLevels.stream()
-                .collect(Collectors.groupingBy(EducationLevel::getName))
-                .values()
+        Map<String, List<EducationLevel>> groupedEducationLevels =
+                educationLevels.stream()
+                        .collect(Collectors.groupingBy(EducationLevel::getName));
+
+        return groupedEducationLevels.entrySet()
                 .stream()
-                .map(group -> {
+                .map(entry -> {
 
-                    String name = group.get(0).getName();
-
-                    List<EducationLevelVariantResponse> variants = group.stream()
-                            .map(level -> new EducationLevelVariantResponse(
-                                    level.getId(),
-                                    level.getDepartment()
-                            ))
-                            .toList();
+                    List<EducationLevelVariantResponse> variants =
+                            entry.getValue().stream()
+                                    .map(level -> new EducationLevelVariantResponse(
+                                            level.getId(),
+                                            level.getDepartment()
+                                    ))
+                                    .toList();
 
                     return new EducationLevelResponse(
-                            name,
+                            entry.getKey(),
                             variants
                     );
                 })
