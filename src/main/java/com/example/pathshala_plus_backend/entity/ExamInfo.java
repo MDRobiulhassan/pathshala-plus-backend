@@ -12,9 +12,9 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Table(name = "exam_info")
-public class ExamInfo extends AuditableEntity{
+public class ExamInfo extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "exam_session_id",nullable = false)
+    @JoinColumn(name = "exam_session_id", nullable = false)
     ExamSession examSession;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -26,7 +26,7 @@ public class ExamInfo extends AuditableEntity{
     Shift shift;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false,length = 10)
+    @Column(nullable = false, length = 10)
     ExamType examType;
 
     @Column(nullable = false)
@@ -37,4 +37,7 @@ public class ExamInfo extends AuditableEntity{
 
     @Column(nullable = false)
     Integer totalQuestions;
+
+    @OneToOne(mappedBy = "examInfo")
+    private Test test;
 }

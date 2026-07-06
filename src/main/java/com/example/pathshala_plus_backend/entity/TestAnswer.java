@@ -1,6 +1,5 @@
 package com.example.pathshala_plus_backend.entity;
 
-import com.example.pathshala_plus_backend.enums.OptionLabel;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -24,14 +23,14 @@ public class TestAnswer extends AuditableEntity {
     @JoinColumn(name = "question_id", nullable = false)
     Question question;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 5)
-    OptionLabel selectedOption;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "selected_option_id")
+    QuestionOption selectedOption;
 
-    @Column(nullable = false)
+    @Column
     Boolean isCorrect;
 
-    @Column(nullable = false)
+    @Column
     Float marksAwarded;
 
     @Column(nullable = false)

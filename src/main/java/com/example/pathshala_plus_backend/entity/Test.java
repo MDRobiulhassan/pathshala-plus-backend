@@ -48,6 +48,10 @@ public class Test extends AuditableEntity {
     @Column
     Float passMarks;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "exam_info_id")
+    private ExamInfo examInfo;
+
     @OneToMany(mappedBy = "test", fetch = FetchType.LAZY)
     List<TestQuestion> testQuestions = new ArrayList<>();
 }

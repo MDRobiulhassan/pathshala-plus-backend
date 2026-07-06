@@ -206,7 +206,7 @@ public class QuestionServiceImpl implements QuestionService {
         Map<Long, List<Question>> grouped = new LinkedHashMap<>();
 
         for (Question q : questions) {
-            Long key = q.getPassage() != null ? q.getPassage().getId() : -q.getId();
+            Long key = q.getPassage() != null ? q.getPassage().getId() : -1L;
             grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(q);
         }
 

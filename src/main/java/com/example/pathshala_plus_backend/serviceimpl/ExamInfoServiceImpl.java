@@ -28,6 +28,7 @@ public class ExamInfoServiceImpl implements ExamInfoService {
         return examInfos.stream()
                 .map(examInfo -> new ExamInfoResponse(
                         examInfo.getId(),
+                        examInfo.getTest().getId(),
                         examInfo.getExamType(),
                         examInfo.getTotalMarks(),
                         examInfo.getDurationInMinutes()
@@ -41,6 +42,7 @@ public class ExamInfoServiceImpl implements ExamInfoService {
         return examInfos.stream()
                 .map(examInfo -> new ExamInfoResponse(
                         examInfo.getId(),
+                        examInfo.getTest().getId(),
                         examInfo.getExamType(),
                         examInfo.getTotalMarks(),
                         examInfo.getDurationInMinutes()
@@ -54,6 +56,7 @@ public class ExamInfoServiceImpl implements ExamInfoService {
         return examInfos.stream()
                 .map(examInfo -> new ExamInfoResponse(
                         examInfo.getId(),
+                        examInfo.getTest().getId(),
                         examInfo.getExamType(),
                         examInfo.getTotalMarks(),
                         examInfo.getDurationInMinutes()

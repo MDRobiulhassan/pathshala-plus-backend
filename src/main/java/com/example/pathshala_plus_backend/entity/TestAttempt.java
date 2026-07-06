@@ -33,6 +33,10 @@ public class TestAttempt extends AuditableEntity {
 
     Instant finishedAt;
     Float score;
+    Integer correctAnswers;
+    Integer incorrectAnswers;
+    Integer unansweredQuestions;
+    Boolean passed;
 
     @Column(nullable = false, columnDefinition = "boolean default false")
     Boolean completed = false;
