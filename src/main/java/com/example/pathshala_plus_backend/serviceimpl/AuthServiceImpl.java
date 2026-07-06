@@ -59,23 +59,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.findByEmail(signupRequest.email()).ifPresent(user -> {
             throw new DuplicateResourceException("User with email " + signupRequest.email() + " already exists");
         });
-
-        if (!signupRequest.password().equals(signupRequest.confirmPassword())) {
-            throw new BadRequestException("Passwords do not match");
-        }
-
-        if (!signupRequest.name().matches("^[A-Za-z\\s]{3,100}$")) {
-            throw new BadRequestException("Name must contain only letters and spaces, 3–100 characters");
-        }
-
-        if (!signupRequest.password().matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).{8,50}$")) {
-            throw new BadRequestException("Password must contain uppercase, lowercase, number, and special character");
-        }
-
-        if (signupRequest.role() == null || signupRequest.role().name().trim().isEmpty()) {
-            throw new BadRequestException("Invalid role value. Allowed values: STUDENT, TEACHER, CONTENT_ADMIN, SUPER_ADMIN");
-        }
-
+        validateSignupRequest(signupRequest);
 
         Language language = languageRepository.findByCode(signupRequest.preferredLanguageCode())
                 .orElseThrow(() -> {
@@ -113,6 +97,24 @@ public class AuthServiceImpl implements AuthService {
         log.info("User registered successfully: {}", savedUser.getEmail());
         authenticationCookieWriter.addAuthCookies(response, rawAccessToken, rawRefreshToken);
         return new SignupResponse(savedUser.getId(), roleName);
+    }
+
+    private void validateSignupRequest(SignupRequest signupRequest) {   // <-- helper starts here, NOT inside signup
+        if (!signupRequest.password().equals(signupRequest.confirmPassword())) {
+            throw new BadRequestException("Passwords do not match");
+        }
+
+        if (!signupRequest.name().matches("^[A-Za-z\\s]{3,100}$")) {
+            throw new BadRequestException("Name must contain only letters and spaces, 3–100 characters");
+        }
+
+        if (!signupRequest.password().matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).{8,50}$")) {
+            throw new BadRequestException("Password must contain uppercase, lowercase, number, and special character");
+        }
+
+        if (signupRequest.role() == null || signupRequest.role().name().trim().isEmpty()) {
+            throw new BadRequestException("Invalid role value. Allowed values: STUDENT, TEACHER, CONTENT_ADMIN, SUPER_ADMIN");
+        }
     }
 
     @Override
