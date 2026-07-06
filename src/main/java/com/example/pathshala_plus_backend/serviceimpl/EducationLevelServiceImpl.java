@@ -31,30 +31,18 @@ public class EducationLevelServiceImpl implements EducationLevelService {
     @Override
     public List<EducationLevelResponse> getAllEducationLevels() {
 
-        List<EducationLevel> educationLevels =
-                educationLevelRepository.findAll();
-
-        Map<String, List<EducationLevel>> groupedEducationLevels =
-                educationLevels.stream()
-                        .collect(Collectors.groupingBy(EducationLevel::getName));
-
-        return groupedEducationLevels.entrySet()
+        return educationLevelRepository.findAll().stream()
+                .collect(Collectors.groupingBy(EducationLevel::getName))
+                .entrySet()
                 .stream()
-                .map(entry -> {
-
-                    List<EducationLevelVariantResponse> variants =
-                            entry.getValue().stream()
-                                    .map(level -> new EducationLevelVariantResponse(
-                                            level.getId(),
-                                            level.getDepartment()
-                                    ))
-                                    .toList();
-
-                    return new EducationLevelResponse(
-                            entry.getKey(),
-                            variants
-                    );
-                })
+                .map(entry -> new EducationLevelResponse(
+                        entry.getKey(),
+                        entry.getValue().stream()
+                                .map(level -> new EducationLevelVariantResponse(
+                                        level.getId(),
+                                        level.getDepartment()))
+                                .toList()
+                ))
                 .toList();
     }
 }
