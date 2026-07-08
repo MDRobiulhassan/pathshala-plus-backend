@@ -74,14 +74,19 @@ public class GlobalExceptionHandler {
     }
 
 
-
-
-
     @ExceptionHandler({InvalidFormatException.class, HttpMessageConversionException.class})
-    public ResponseEntity<?> handleInvalidRole(Exception exception) {
+    public ResponseEntity<?> handleInvalidFormat(Exception exception) {
+        String message = "Malformed request body";
+
+        if (exception instanceof InvalidFormatException ife && ife.getTargetType().isEnum()) {
+            String fieldName = ife.getPath().isEmpty() ? "field" : ife.getPath().get(0).getFieldName();
+            message = "Invalid value for '" + fieldName + "'. Allowed values: "
+                    + java.util.Arrays.toString(ife.getTargetType().getEnumConstants());
+        }
+
         Map<String, Object> errorBody = new HashMap<>();
         errorBody.put("status", HttpStatus.BAD_REQUEST.value());
-        errorBody.put("message", "Invalid role value. Allowed values: STUDENT, TEACHER, CONTENT_ADMIN, SUPER_ADMIN");
+        errorBody.put("message", message);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody);
     }
 

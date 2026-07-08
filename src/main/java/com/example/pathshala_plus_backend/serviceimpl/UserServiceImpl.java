@@ -19,6 +19,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import com.example.pathshala_plus_backend.dto.request.user.UpdateProfileRequest;
+import com.example.pathshala_plus_backend.entity.EducationLevel;
+import com.example.pathshala_plus_backend.entity.Language;
+import com.example.pathshala_plus_backend.repository.EducationLevelRepository;
+import com.example.pathshala_plus_backend.repository.LanguageRepository;
 
 import java.util.List;
 
@@ -29,6 +34,8 @@ import java.util.List;
 public class UserServiceImpl implements UserService, UserDetailsService {
 
     UserRepository userRepository;
+    LanguageRepository languageRepository;
+    EducationLevelRepository educationLevelRepository;
     UserOauthAccountRepository userOauthAccountRepository;
     AuthUtil authUtil;
 
@@ -69,5 +76,35 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 providers,
                 roles
         );
+    }
+
+    @Override
+    @Transactional
+    public UserProfileResponse updateProfile(UpdateProfileRequest request) {
+        Long userId = authUtil.getCurrentUserId();
+        User user = userRepository.findByIdWithDetails(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+
+        if (request.name() != null) {
+            user.setName(request.name());
+        }
+        if (request.phone() != null) {
+            user.setPhone(request.phone());
+        }
+        if (request.preferredLanguageCode() != null) {
+            Language language = languageRepository.findByCode(request.preferredLanguageCode())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Language not found with code: " + request.preferredLanguageCode()));
+            user.setPreferredLanguage(language);
+        }
+        if (request.educationLevelId() != null) {
+            EducationLevel educationLevel = educationLevelRepository.findById(request.educationLevelId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Education level not found with id: " + request.educationLevelId()));
+            user.setEducationLevel(educationLevel);
+        }
+
+        userRepository.save(user);
+        return getUserProfile();
     }
 }
