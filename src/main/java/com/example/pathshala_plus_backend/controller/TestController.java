@@ -51,4 +51,9 @@ public class TestController {
     public ResponseEntity<?> getTestAttemptResult(@PathVariable Long attemptId) {
         return ResponseEntity.ok(testService.getTestAttemptResultById(attemptId));
     }
+
+    @GetMapping("/users/me/attempts")
+    public ResponseEntity<?> getUserTestAttempts() {
+        return ResponseEntity.ok(testService.getUserTestAttempts());
+    }
 }

@@ -3,8 +3,10 @@ package com.example.pathshala_plus_backend.service;
 import com.example.pathshala_plus_backend.dto.request.test.SaveAnswersRequest;
 import com.example.pathshala_plus_backend.dto.response.test.TestAttemptResponse;
 import com.example.pathshala_plus_backend.dto.response.test.TestTypeResponse;
+import com.example.pathshala_plus_backend.dto.response.test.testhistory.TestAttemptHistory;
 import com.example.pathshala_plus_backend.dto.response.test.testquestion.TestQuestionsResponse;
 import com.example.pathshala_plus_backend.dto.response.test.testresult.TestResultResponse;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -22,4 +24,6 @@ public interface TestService {
     void submitTestAttempt(Long attemptId);
 
     TestResultResponse getTestAttemptResultById(Long attemptId);
+
+    TestAttemptHistory getUserTestAttempts();
 }
