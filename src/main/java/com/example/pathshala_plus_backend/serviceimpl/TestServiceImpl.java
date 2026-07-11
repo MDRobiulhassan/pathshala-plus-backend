@@ -6,6 +6,8 @@ import com.example.pathshala_plus_backend.dto.request.test.AnswerRequest;
 import com.example.pathshala_plus_backend.dto.request.test.SaveAnswersRequest;
 import com.example.pathshala_plus_backend.dto.response.test.TestAttemptResponse;
 import com.example.pathshala_plus_backend.dto.response.test.TestTypeResponse;
+import com.example.pathshala_plus_backend.dto.response.test.testhistory.TestAttemptHistory;
+import com.example.pathshala_plus_backend.dto.response.test.testhistory.TestAttemptHistoryItem;
 import com.example.pathshala_plus_backend.dto.response.test.testquestion.*;
 import com.example.pathshala_plus_backend.dto.response.test.testresult.*;
 import com.example.pathshala_plus_backend.entity.*;
@@ -23,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -273,6 +276,27 @@ public class TestServiceImpl implements TestService {
         );
 
         return new TestResultResponse(summary, subjects);
+    }
+
+    @Override
+    public TestAttemptHistory getUserTestAttempts() {
+        Long userId = authUtil.getCurrentUserId();
+        List<TestAttemptHistoryItem> attempts = testAttemptRepository.findByUserIdAndCompletedTrueOrderByFinishedAtDesc(userId)
+                .stream()
+                .map(attempt -> new TestAttemptHistoryItem(
+                        attempt.getId(),
+                        attempt.getTest().getId(),
+                        attempt.getTest().getName(),
+                        attempt.getScore(),
+                        attempt.getPassed(),
+                        attempt.getFinishedAt(),
+                        attempt.getFinishedAt() != null
+                                ? (int) Duration.between(
+                                attempt.getStartedAt(),
+                                attempt.getFinishedAt()
+                        ).getSeconds() : 0
+                )).toList();
+        return new TestAttemptHistory(attempts);
     }
 
     /* ----------------------------------------
