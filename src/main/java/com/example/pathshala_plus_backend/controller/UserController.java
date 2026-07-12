@@ -17,11 +17,6 @@ public class UserController {
 
     UserService userService;
 
-    @GetMapping("/me")
-    public ResponseEntity<?> getMe() {
-        return ResponseEntity.ok(userService.getUserProfile());
-    }
-
     @PatchMapping("/me")
     public ResponseEntity<?> updateMe(@Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok(userService.updateProfile(request));

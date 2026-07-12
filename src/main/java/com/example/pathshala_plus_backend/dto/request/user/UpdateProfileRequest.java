@@ -1,5 +1,6 @@
 package com.example.pathshala_plus_backend.dto.request.user;
 
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record UpdateProfileRequest(
@@ -11,6 +12,18 @@ public record UpdateProfileRequest(
 
         String preferredLanguageCode,
 
-        Long educationLevelId
+        Long educationLevelId,
+
+        @Size(max = 500, message = "Avatar URL must be at most 500 characters")
+        String avatarUrl,
+
+        String currentPassword,
+
+        @Size(min = 8, max = 50, message = "Password must be between 8 and 50 characters")
+        @Pattern(
+                regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).+$",
+                message = "Password must contain uppercase, lowercase, number, and special character"
+        )
+        String newPassword
 ) {
 }

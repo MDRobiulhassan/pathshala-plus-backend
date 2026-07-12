@@ -24,6 +24,8 @@ import com.example.pathshala_plus_backend.entity.EducationLevel;
 import com.example.pathshala_plus_backend.entity.Language;
 import com.example.pathshala_plus_backend.repository.EducationLevelRepository;
 import com.example.pathshala_plus_backend.repository.LanguageRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import com.example.pathshala_plus_backend.exceptions.BadRequestException;
 
 import java.util.List;
 
@@ -38,6 +40,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     EducationLevelRepository educationLevelRepository;
     UserOauthAccountRepository userOauthAccountRepository;
     AuthUtil authUtil;
+    PasswordEncoder passwordEncoder;
 
     @Override
     public @NonNull UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException {
@@ -51,9 +54,12 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         Long userId = authUtil.getCurrentUserId();
         User user = userRepository.findByIdWithDetails(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+        return buildUserProfileResponse(user);
+    }
 
+    private UserProfileResponse buildUserProfileResponse(User user) {
         List<Provider> providers = userOauthAccountRepository
-                .findAllByUserId(userId)
+                .findAllByUserId(user.getId())
                 .stream()
                 .map(UserOauthAccount::getProvider)
                 .toList();
@@ -91,6 +97,9 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         if (request.phone() != null) {
             user.setPhone(request.phone());
         }
+        if (request.avatarUrl() != null) {
+            user.setAvatarUrl(request.avatarUrl());
+        }
         if (request.preferredLanguageCode() != null) {
             Language language = languageRepository.findByCode(request.preferredLanguageCode())
                     .orElseThrow(() -> new IllegalArgumentException(
@@ -103,8 +112,17 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                             "Education level not found with id: " + request.educationLevelId()));
             user.setEducationLevel(educationLevel);
         }
+        if (request.newPassword() != null) {
+            if (request.currentPassword() == null) {
+                throw new BadRequestException("Current password is required to set a new password");
+            }
+            if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+                throw new BadRequestException("Current password is incorrect");
+            }
+            user.setPassword(passwordEncoder.encode(request.newPassword()));
+        }
 
         userRepository.save(user);
-        return getUserProfile();
+        return buildUserProfileResponse(user);
     }
 }
