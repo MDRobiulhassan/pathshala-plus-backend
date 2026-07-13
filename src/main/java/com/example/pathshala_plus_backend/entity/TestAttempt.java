@@ -41,6 +41,12 @@ public class TestAttempt extends AuditableEntity {
     @Column(nullable = false, columnDefinition = "boolean default false")
     Boolean completed = false;
 
+    @Version
+    Long version;
+
     @OneToMany(mappedBy = "testAttempt", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     List<TestAnswer> answers = new ArrayList<>();
 }
+
+// Enforced by DB: unique(test_id, user_id) WHERE completed = false AND is_deleted = false
+// Migration V21_1__add_unique_active_attempt_constraint.sql
