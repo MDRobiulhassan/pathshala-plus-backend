@@ -12,7 +12,12 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "test_answers")
+@Table(
+        name = "test_answers",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_test_answers_attempt_question",
+                columnNames = {"attempt_id", "question_id"}
+        ))
 public class TestAnswer extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

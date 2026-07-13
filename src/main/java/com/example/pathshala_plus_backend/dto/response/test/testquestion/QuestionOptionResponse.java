@@ -6,6 +6,7 @@ public record QuestionOptionResponse(
         Long optionId,
         OptionLabel optionLabel,
         String optionText,
-        String optionImageUrl
+        String optionImageUrl,
+        Boolean selected
 ) {
 }

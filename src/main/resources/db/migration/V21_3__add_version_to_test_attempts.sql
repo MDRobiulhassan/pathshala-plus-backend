@@ -1,0 +1,2 @@
+ALTER TABLE test_attempts
+    ADD COLUMN version BIGINT NOT NULL DEFAULT 0;
