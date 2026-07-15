@@ -14,7 +14,6 @@ public record UpdateProfileRequest(
 
         Long educationLevelId,
 
-        @Size(max = 500, message = "Avatar URL must be at most 500 characters")
         String avatarUrl,
 
         String currentPassword,
@@ -24,6 +23,8 @@ public record UpdateProfileRequest(
                 regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).+$",
                 message = "Password must contain uppercase, lowercase, number, and special character"
         )
-        String newPassword
+        String newPassword,
+
+        String confirmNewPassword
 ) {
 }

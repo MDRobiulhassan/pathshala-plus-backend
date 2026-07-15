@@ -32,7 +32,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Transactional(readOnly = true)
+@Transactional
 public class UserServiceImpl implements UserService, UserDetailsService {
 
     UserRepository userRepository;
@@ -56,6 +56,37 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
         return buildUserProfileResponse(user);
     }
+
+    @Override
+    public UserProfileResponse updateProfile(UpdateProfileRequest request) {
+        Long userId = authUtil.getCurrentUserId();
+        User user = userRepository.findByIdWithDetails(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (request.name() != null) {
+            user.setName(request.name());
+        }
+        if (request.phone() != null) {
+            user.setPhone(request.phone());
+        }
+        if (request.avatarUrl() != null) {
+            user.setAvatarUrl(request.avatarUrl());
+        }
+        if (request.preferredLanguageCode() != null) {
+            user.setPreferredLanguage(resolveLanguage(request.preferredLanguageCode()));
+        }
+        if (request.educationLevelId() != null) {
+            user.setEducationLevel(resolveEducationLevel(request.educationLevelId()));
+        }
+        if (request.newPassword() != null) {
+            updatePassword(user, request);
+        }
+
+        userRepository.save(user);
+        return buildUserProfileResponse(user);
+    }
+
+    //Helper methods
 
     private UserProfileResponse buildUserProfileResponse(User user) {
         List<Provider> providers = userOauthAccountRepository
@@ -84,45 +115,26 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         );
     }
 
-    @Override
-    @Transactional
-    public UserProfileResponse updateProfile(UpdateProfileRequest request) {
-        Long userId = authUtil.getCurrentUserId();
-        User user = userRepository.findByIdWithDetails(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+    private Language resolveLanguage(String code) {
+        return languageRepository.findByCode(code)
+                .orElseThrow(() -> new IllegalArgumentException("Language not found"));
+    }
 
-        if (request.name() != null) {
-            user.setName(request.name());
-        }
-        if (request.phone() != null) {
-            user.setPhone(request.phone());
-        }
-        if (request.avatarUrl() != null) {
-            user.setAvatarUrl(request.avatarUrl());
-        }
-        if (request.preferredLanguageCode() != null) {
-            Language language = languageRepository.findByCode(request.preferredLanguageCode())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Language not found with code: " + request.preferredLanguageCode()));
-            user.setPreferredLanguage(language);
-        }
-        if (request.educationLevelId() != null) {
-            EducationLevel educationLevel = educationLevelRepository.findById(request.educationLevelId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Education level not found with id: " + request.educationLevelId()));
-            user.setEducationLevel(educationLevel);
-        }
-        if (request.newPassword() != null) {
-            if (request.currentPassword() == null) {
-                throw new BadRequestException("Current password is required to set a new password");
-            }
-            if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-                throw new BadRequestException("Current password is incorrect");
-            }
-            user.setPassword(passwordEncoder.encode(request.newPassword()));
-        }
+    private EducationLevel resolveEducationLevel(Long educationLevelId) {
+        return educationLevelRepository.findById(educationLevelId)
+                .orElseThrow(() -> new IllegalArgumentException("Education level not found"));
+    }
 
-        userRepository.save(user);
-        return buildUserProfileResponse(user);
+    private void updatePassword(User user, UpdateProfileRequest request) {
+        if (request.currentPassword() == null) {
+            throw new BadRequestException("Current password is required to set a new password");
+        }
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+        if (!request.newPassword().equals(request.confirmNewPassword())) {
+            throw new BadRequestException("New password and confirm password do not match");
+        }
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
     }
 }
