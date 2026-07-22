@@ -82,6 +82,14 @@ public class QuestionServiceImpl implements QuestionService {
         );
     }
 
+    /* ----------------------------------------
+     * Private Helper Methods
+     * ---------------------------------------- */
+
+    /* ----------------------------------------
+     * Question Mappers
+     * ---------------------------------------- */
+
     private List<SubjectQuestionsResponse> toSubjectResponses(List<Question> questions) {
         return groupBySubject(questions).entrySet().stream()
                 .map(e -> new SubjectQuestionsResponse(
@@ -173,6 +181,10 @@ public class QuestionServiceImpl implements QuestionService {
                 .toList();
     }
 
+
+    /* ----------------------------------------
+     * Subject Browse Mappers
+     * ---------------------------------------- */
 
     private QuestionWithTagResponse toQuestionWithTagResponse(Question question) {
         ExamInfo examInfo = question.getExamInfo();

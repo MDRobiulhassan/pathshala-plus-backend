@@ -3,7 +3,6 @@ package com.example.pathshala_plus_backend.serviceimpl;
 import com.example.pathshala_plus_backend.dto.response.education.EducationLevelResponse;
 import com.example.pathshala_plus_backend.dto.response.education.EducationLevelVariantResponse;
 import com.example.pathshala_plus_backend.entity.EducationLevel;
-import com.example.pathshala_plus_backend.enums.Department;
 import com.example.pathshala_plus_backend.repository.EducationLevelRepository;
 import com.example.pathshala_plus_backend.service.EducationLevelService;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,12 +10,9 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service

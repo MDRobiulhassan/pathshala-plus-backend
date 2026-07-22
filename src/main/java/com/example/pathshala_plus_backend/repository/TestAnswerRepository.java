@@ -17,4 +17,6 @@ public interface TestAnswerRepository extends JpaRepository<@NonNull TestAnswer,
             WHERE a.testAttempt.id = :attemptId
             """)
     List<TestAnswer> findByTestAttemptId(@Param("attemptId") Long attemptId);
+
+    int countByTestAttemptId(Long attemptId);
 }

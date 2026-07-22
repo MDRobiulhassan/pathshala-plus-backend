@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 @Transactional
 public class TestServiceImpl implements TestService {
 
-    private static final Duration SUBMISSION_GRACE_PERIOD = Duration.ofSeconds(30);
     TestTypeRepository testTypeRepository;
     TestRepository testRepository;
     TestAttemptRepository testAttemptRepository;
@@ -49,6 +48,8 @@ public class TestServiceImpl implements TestService {
     TestAnswerRepository testAnswerRepository;
     QuestionOptionRepository questionOptionRepository;
     AuthUtil authUtil;
+
+    private static final Duration SUBMISSION_GRACE_PERIOD = Duration.ofSeconds(30);
 
     @Override
     public List<TestTypeResponse> getAllTestTypes() {
