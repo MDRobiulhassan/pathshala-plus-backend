@@ -100,7 +100,7 @@ public class AuthServiceImpl implements AuthService {
         return new SignupResponse(savedUser.getId(), roleName);
     }
 
-    private void validateSignupRequest(SignupRequest signupRequest) {   // <-- helper starts here, NOT inside signup
+    private void validateSignupRequest(SignupRequest signupRequest) {
         if (!signupRequest.password().equals(signupRequest.confirmPassword())) {
             throw new BadRequestException("Passwords do not match");
         }
@@ -134,7 +134,7 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("Authentication failed");
         }
 
-        User user = userDetails.getUser(); // free — no query, already joined with roles/permissions
+        User user = userDetails.getUser();
 
         String rawAccessToken = jwtTokenProvider.generateAccessToken(authentication);
         String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
