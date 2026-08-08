@@ -120,7 +120,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest loginRequest, HttpServletResponse response) {
-        long start = System.currentTimeMillis();
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
@@ -146,7 +145,6 @@ public class AuthServiceImpl implements AuthService {
         RoleName role = user.getUserRoles().get(0).getRole().getName();
 
         authenticationCookieWriter.addAuthCookies(response, rawAccessToken, rawRefreshToken);
-        log.info("Login took {} ms", System.currentTimeMillis() - start);
         return new LoginResponse(userDetails.getId(), role);
     }
 
