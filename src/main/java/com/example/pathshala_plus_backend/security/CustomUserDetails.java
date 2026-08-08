@@ -13,6 +13,7 @@ import java.util.*;
 @EqualsAndHashCode(of = "id")
 public class CustomUserDetails implements UserDetails {
     private final Long id;
+    private final User user;
     private final String username;
     private final String password;
     private final boolean enabled;
@@ -20,6 +21,7 @@ public class CustomUserDetails implements UserDetails {
 
     public CustomUserDetails(User user) {
         Objects.requireNonNull(user);
+        this.user=user;
         this.id = user.getId();
         this.username = Objects.requireNonNull(user.getEmail());
         this.password = user.getPassword();

@@ -10,5 +10,5 @@ import java.util.Optional;
 
 public interface RefreshTokenRepository extends JpaRepository<@NonNull RefreshToken, @NonNull Long> {
     Optional<RefreshToken> findByUserAndIsDeletedFalseAndIsRevokedFalse(User user);
-    List<RefreshToken> findByUserIsDeletedFalse(User user);
+    List<RefreshToken> findByUserAndIsDeletedFalse(User user);
 }

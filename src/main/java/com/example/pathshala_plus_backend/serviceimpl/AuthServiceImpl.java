@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -119,32 +120,33 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest loginRequest, HttpServletResponse response) {
-        User user = userRepository.findByEmail(loginRequest.email())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + loginRequest.email()));
-
-        if (!passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
+        long start = System.currentTimeMillis();
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
+            );
+        } catch (BadCredentialsException e) {
             throw new UnauthorizedException("Invalid email or password");
         }
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.email(),
-                        loginRequest.password()
-                )
-        );
+        if (!(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+            throw new UnauthorizedException("Authentication failed");
+        }
 
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser(); // free — no query, already joined with roles/permissions
 
         String rawAccessToken = jwtTokenProvider.generateAccessToken(authentication);
         String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
-        RefreshToken refreshTokenEntity = RefreshTokenMapper.toRefreshToken(user, rawRefreshToken, Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
+        RefreshToken refreshTokenEntity = RefreshTokenMapper.toRefreshToken(
+                user, rawRefreshToken, Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
         refreshTokenRepository.save(refreshTokenEntity);
 
-        assert userDetails != null;
         RoleName role = user.getUserRoles().get(0).getRole().getName();
 
         authenticationCookieWriter.addAuthCookies(response, rawAccessToken, rawRefreshToken);
+        log.info("Login took {} ms", System.currentTimeMillis() - start);
         return new LoginResponse(userDetails.getId(), role);
     }
 

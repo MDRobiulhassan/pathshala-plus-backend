@@ -122,7 +122,7 @@ public class JwtTokenProvider {
     }
 
     public void invalidateRefreshTokens(User user) {
-        List<RefreshToken> previousTokens = refreshTokenRepository.findByUserIsDeletedFalse(user);
+        List<RefreshToken> previousTokens = refreshTokenRepository.findByUserAndIsDeletedFalse(user);
 
         for (RefreshToken refreshToken : previousTokens) {
             refreshToken.setIsRevoked(true);
