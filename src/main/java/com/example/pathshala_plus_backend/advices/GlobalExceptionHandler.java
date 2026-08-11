@@ -48,11 +48,6 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
-    @ExceptionHandler(InvalidResetTokenException.class)
-    public ResponseEntity<?> handleInvalidResetToken(InvalidResetTokenException exception) {
-        return buildError(HttpStatus.BAD_REQUEST, exception.getMessage());
-    }
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidation(MethodArgumentNotValidException exception) {
         List<String> errors = exception.getBindingResult().getFieldErrors().stream()
