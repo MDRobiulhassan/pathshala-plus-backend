@@ -2,6 +2,7 @@ package com.example.pathshala_plus_backend.advices;
 
 import com.example.pathshala_plus_backend.exceptions.*;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -117,5 +118,11 @@ public class GlobalExceptionHandler {
     private ResponseEntity<?> buildError(HttpStatus status, String message) {
         ApiError apiError = ApiError.builder().status(status).message(message).build();
         return new ResponseEntity<>(new ApiResponse<>(apiError), status);
+    }
+
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<?> handleJwtException(io.jsonwebtoken.JwtException exception) {
+        log.warn("JWT error: {}", exception.getMessage());
+        return buildError(HttpStatus.UNAUTHORIZED, "Invalid or expired token");
     }
 }
