@@ -121,7 +121,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(JwtException.class)
-    public ResponseEntity<?> handleJwtException(io.jsonwebtoken.JwtException exception) {
+    public ResponseEntity<?> handleJwtException(JwtException exception) {
         log.warn("JWT error: {}", exception.getMessage());
         return buildError(HttpStatus.UNAUTHORIZED, "Invalid or expired token");
     }
