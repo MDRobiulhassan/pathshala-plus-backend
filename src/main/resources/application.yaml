@@ -6,6 +6,9 @@ spring:
   application:
     name: pathshala-plus-backend
 
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
 
   datasource:
     URL: ${DATABASE_URL}
