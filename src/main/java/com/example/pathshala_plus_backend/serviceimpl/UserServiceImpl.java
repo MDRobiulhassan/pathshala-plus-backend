@@ -20,6 +20,10 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import com.example.pathshala_plus_backend.dto.request.user.UpdateProfileRequest;
+import com.example.pathshala_plus_backend.dto.request.user.UpdatePersonalDetailsRequest;
+import com.example.pathshala_plus_backend.dto.request.user.UpdateAcademicsRequest;
+import com.example.pathshala_plus_backend.dto.request.user.UpdatePreferencesRequest;
+import com.example.pathshala_plus_backend.dto.request.user.ChangePasswordRequest;
 import com.example.pathshala_plus_backend.entity.EducationLevel;
 import com.example.pathshala_plus_backend.entity.Language;
 import com.example.pathshala_plus_backend.repository.EducationLevelRepository;
@@ -84,6 +88,67 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
         userRepository.save(user);
         return buildUserProfileResponse(user);
+    }
+
+    @Override
+    public UserProfileResponse updatePersonalDetails(UpdatePersonalDetailsRequest request) {
+        Long userId = authUtil.getCurrentUserId();
+        User user = userRepository.findByIdWithDetails(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (request.name() != null) {
+            user.setName(request.name());
+        }
+        if (request.phone() != null) {
+            user.setPhone(request.phone());
+        }
+        if (request.avatarUrl() != null) {
+            user.setAvatarUrl(request.avatarUrl());
+        }
+
+        userRepository.save(user);
+        return buildUserProfileResponse(user);
+    }
+
+    @Override
+    public UserProfileResponse updateAcademics(UpdateAcademicsRequest request) {
+        Long userId = authUtil.getCurrentUserId();
+        User user = userRepository.findByIdWithDetails(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        user.setEducationLevel(resolveEducationLevel(request.educationLevelId()));
+
+        userRepository.save(user);
+        return buildUserProfileResponse(user);
+    }
+
+    @Override
+    public UserProfileResponse updatePreferences(UpdatePreferencesRequest request) {
+        Long userId = authUtil.getCurrentUserId();
+        User user = userRepository.findByIdWithDetails(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        user.setPreferredLanguage(resolveLanguage(request.preferredLanguageCode()));
+
+        userRepository.save(user);
+        return buildUserProfileResponse(user);
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        Long userId = authUtil.getCurrentUserId();
+        User user = userRepository.findByIdWithDetails(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+        if (!request.newPassword().equals(request.confirmNewPassword())) {
+            throw new BadRequestException("New password and confirm password do not match");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
     }
 
     //Helper methods
