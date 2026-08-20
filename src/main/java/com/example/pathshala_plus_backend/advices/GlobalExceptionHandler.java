@@ -100,6 +100,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<?> handleAccessDenied(AccessDeniedException exception) {
+        log.warn("Access denied: {}", exception.getMessage());
         return buildError(HttpStatus.FORBIDDEN, "Access denied");
     }
 
@@ -124,5 +125,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleJwtException(JwtException exception) {
         log.warn("JWT error: {}", exception.getMessage());
         return buildError(HttpStatus.UNAUTHORIZED, "Invalid or expired token");
+    }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<?> handleInvalidRequest(InvalidRequestException exception) {
+        return buildError(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<?> handleStorageException(StorageException exception) {
+        log.error("Storage error: {}", exception.getMessage(), exception);
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "File storage operation failed");
     }
 }

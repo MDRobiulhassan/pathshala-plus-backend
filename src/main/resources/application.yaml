@@ -76,3 +76,9 @@ app:
   frontend-url: ${FRONTEND_URL}
   otp-expiration-minutes: ${OTP_EXPIRATION_MINUTES}
   reset-token-expiration-minutes: ${RESET_TOKEN_EXPIRATION_MINUTES}
+
+supabase:
+  url: ${SUPABASE_URL}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
+  storage:
+    bucket: avatars
