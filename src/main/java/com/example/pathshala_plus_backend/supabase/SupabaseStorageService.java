@@ -20,9 +20,9 @@ public class SupabaseStorageService {
     private final WebClient supabaseWebClient;
     private final SupabaseProperties properties;
 
-    public String upload(String path, byte[] content, String contentType) {
+    public String upload(StorageBucket bucket, String path, byte[] content, String contentType) {
         URI uri = URI.create(properties.getUrl() + "/storage/v1/object/"
-                + properties.getStorage().getBucket() + "/" + path);
+                + bucket.getBucketName() + "/" + path);
 
         supabaseWebClient.post()
                 .uri(uri)
@@ -37,26 +37,26 @@ public class SupabaseStorageService {
                 .toBodilessEntity()
                 .block();
 
-        return properties.getUrl() + "/storage/v1/object/public/"
-                + properties.getStorage().getBucket() + "/" + path;
+        return properties.getUrl() + "/storage/v1/object/public/" + bucket.getBucketName() + "/" + path;
     }
 
-    public void deleteByPublicUrl(String publicUrl) {
-        String marker = "/storage/v1/object/public/" + properties.getStorage().getBucket() + "/";
+    public void deleteByPublicUrl(StorageBucket bucket, String publicUrl) {
+        String marker = "/storage/v1/object/public/" + bucket.getBucketName() + "/";
         int idx = publicUrl.indexOf(marker);
         if (idx == -1) {
             return;
         }
         String path = publicUrl.substring(idx + marker.length());
         URI uri = URI.create(properties.getUrl() + "/storage/v1/object/"
-                + properties.getStorage().getBucket() + "/" + path);
+                + bucket.getBucketName() + "/" + path);
 
         supabaseWebClient.method(HttpMethod.DELETE)
                 .uri(uri)
                 .retrieve()
                 .toBodilessEntity()
                 .onErrorResume(e -> {
-                    log.warn("Failed to delete old avatar at path {}: {}", path, e.getMessage());
+                    log.warn("Failed to delete old file at path {} in bucket {}: {}",
+                            path, bucket.getBucketName(), e.getMessage());
                     return Mono.empty();
                 })
                 .block();

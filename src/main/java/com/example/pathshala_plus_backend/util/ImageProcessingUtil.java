@@ -12,17 +12,29 @@ import java.io.IOException;
 public class ImageProcessingUtil {
 
     private static final int AVATAR_MAX_DIMENSION = 512;
-    private static final double JPEG_QUALITY = 0.85;
+    private static final double AVATAR_JPEG_QUALITY = 0.85;
+
+    private static final int QUESTION_IMAGE_MAX_DIMENSION = 1600;
+    private static final double QUESTION_JPEG_QUALITY = 0.9;
+
     private static final long MAX_UPLOAD_BYTES = 2L * 1024 * 1024;
 
     public static byte[] resizeAvatar(MultipartFile file) throws IOException {
-        validate(file);
+        return resize(file, AVATAR_MAX_DIMENSION, "jpg", AVATAR_JPEG_QUALITY);
+    }
 
+    public static byte[] resizeQuestionImage(MultipartFile file) throws IOException {
+        return resize(file, QUESTION_IMAGE_MAX_DIMENSION, "jpg", QUESTION_JPEG_QUALITY);
+    }
+
+    public static byte[] resize(MultipartFile file, int maxDimension, String outputFormat, double quality)
+            throws IOException {
+        validate(file);
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             Thumbnails.of(file.getInputStream())
-                    .size(AVATAR_MAX_DIMENSION, AVATAR_MAX_DIMENSION)
-                    .outputFormat("jpg")
-                    .outputQuality(JPEG_QUALITY)
+                    .size(maxDimension, maxDimension)
+                    .outputFormat(outputFormat)
+                    .outputQuality(quality)
                     .toOutputStream(output);
             return output.toByteArray();
         }

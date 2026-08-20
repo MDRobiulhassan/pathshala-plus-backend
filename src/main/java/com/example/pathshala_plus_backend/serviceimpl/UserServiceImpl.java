@@ -20,6 +20,7 @@ import com.example.pathshala_plus_backend.security.AuthUtil;
 import com.example.pathshala_plus_backend.security.CustomUserDetails;
 import com.example.pathshala_plus_backend.security.JwtTokenProvider;
 import com.example.pathshala_plus_backend.service.UserService;
+import com.example.pathshala_plus_backend.supabase.StorageBucket;
 import com.example.pathshala_plus_backend.supabase.SupabaseStorageService;
 import com.example.pathshala_plus_backend.util.ImageProcessingUtil;
 import lombok.AccessLevel;
@@ -80,14 +81,14 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         byte[] resized = resizeAvatar(file);
 
         String path = "avatars/" + user.getId() + "/" + UUID.randomUUID() + ".jpg";
-        String publicUrl = supabaseStorageService.upload(path, resized, "image/jpeg");
+        String publicUrl = supabaseStorageService.upload(StorageBucket.AVATARS,path, resized, "image/jpeg");
 
         String oldAvatarUrl = user.getAvatarUrl();
         user.setAvatarUrl(publicUrl);
         userRepository.save(user);
 
         if (oldAvatarUrl != null) {
-            supabaseStorageService.deleteByPublicUrl(oldAvatarUrl);
+            supabaseStorageService.deleteByPublicUrl(StorageBucket.AVATARS,oldAvatarUrl);
         }
 
         return new AvatarResponse(publicUrl);
