@@ -29,7 +29,8 @@ public class SubjectServiceImpl implements SubjectService {
                 .map(subject -> new SubjectResponse(
                         subject.getId(),
                         subject.getName(),
-                        subject.getEducationLevel().getId()
+                        subject.getEducationLevel().getId(),
+                        subject.getLogoUrl()
                 ))
                 .toList();
     }

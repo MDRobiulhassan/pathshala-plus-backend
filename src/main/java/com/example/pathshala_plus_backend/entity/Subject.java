@@ -22,4 +22,7 @@ public class Subject extends AuditableEntity {
 
     @Column(columnDefinition = "TEXT")
     String description;
+
+    @Column(length = 500)
+    String logoUrl;
 }
