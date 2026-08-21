@@ -71,6 +71,8 @@ app:
   frontend-url: ${FRONTEND_URL}
   otp-expiration-minutes: ${OTP_EXPIRATION_MINUTES}
   reset-token-expiration-minutes: ${RESET_TOKEN_EXPIRATION_MINUTES}
+  cookie-secure: true
+  cookie-same-site: Lax
 
 supabase:
   url: ${SUPABASE_URL}
