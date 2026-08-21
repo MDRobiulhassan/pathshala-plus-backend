@@ -28,6 +28,7 @@ public class SupabaseStorageService {
                 .uri(uri)
                 .header(HttpHeaders.CONTENT_TYPE, contentType)
                 .header("x-upsert", "true")
+                .header("cache-control", "public, max-age=31536000 immutable")
                 .bodyValue(content)
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, response ->
@@ -37,18 +38,19 @@ public class SupabaseStorageService {
                 .toBodilessEntity()
                 .block();
 
-        return properties.getUrl() + "/storage/v1/object/public/" + bucket.getBucketName() + "/" + path;
+        return properties.getStorage().getPublicBaseUrl()
+                + "/storage/v1/object/public/" + bucket.getBucketName() + "/" + path;
     }
 
     public void deleteByPublicUrl(StorageBucket bucket, String publicUrl) {
-        String marker = "/storage/v1/object/public/" + bucket.getBucketName() + "/";
+        String marker = properties.getStorage().getPublicBaseUrl()
+                + "/storage/v1/object/public/" + bucket.getBucketName() + "/";
         int idx = publicUrl.indexOf(marker);
         if (idx == -1) {
             return;
         }
         String path = publicUrl.substring(idx + marker.length());
-        URI uri = URI.create(properties.getUrl() + "/storage/v1/object/"
-                + bucket.getBucketName() + "/" + path);
+        URI uri = URI.create(properties.getUrl() + "/storage/v1/object/" + bucket.getBucketName() + "/" + path);
 
         supabaseWebClient.method(HttpMethod.DELETE)
                 .uri(uri)

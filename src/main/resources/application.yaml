@@ -81,4 +81,4 @@ supabase:
   url: ${SUPABASE_URL}
   service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
   storage:
-    bucket: avatars
+    public-base-url: ${SUPABASE_STORAGE_PUBLIC_BASE_URL:${SUPABASE_URL}} # public base url

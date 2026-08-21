@@ -17,6 +17,6 @@ public class SupabaseProperties {
     @Getter
     @Setter
     public static class Storage {
-        private String bucket;
+        private String publicBaseUrl;
     }
 }

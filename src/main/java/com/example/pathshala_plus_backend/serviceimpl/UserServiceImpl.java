@@ -80,7 +80,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         User user = findCurrentUser();
         byte[] resized = resizeAvatar(file);
 
-        String path = "avatars/" + user.getId() + "/" + UUID.randomUUID() + ".jpg";
+        String path = user.getId() + "/" + UUID.randomUUID() + ".jpg";
         String publicUrl = supabaseStorageService.upload(StorageBucket.AVATARS,path, resized, "image/jpeg");
 
         String oldAvatarUrl = user.getAvatarUrl();
