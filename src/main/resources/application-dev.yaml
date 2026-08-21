@@ -1,8 +1,4 @@
 spring:
-  profiles:
-    active: dev
-  config:
-    import: "optional:classpath:application.yaml"
   application:
     name: pathshala-plus-backend
 
@@ -60,17 +56,16 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-# Uncomment the following lines to disable Swagger UI and API docs in production
-#springdoc:
-#  api-docs:
-#    enabled: false
-#  swagger-ui:
-#    enabled: false
-
 jwt:
   secret-key: ${JWT_SECRET}
   access-token-expiration-minutes: ${JWT_ACCESS_EXPIRATION_MINUTES}
   refresh-token-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS}
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
 
 app:
   frontend-url: ${FRONTEND_URL}
