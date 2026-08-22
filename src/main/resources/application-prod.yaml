@@ -1,11 +1,10 @@
 spring:
-  profiles:
-    active: dev
-  config:
-    import: "optional:classpath:application.yaml"
   application:
     name: pathshala-plus-backend
 
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
 
   datasource:
     URL: ${DATABASE_URL}
@@ -16,10 +15,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   security:
@@ -57,12 +56,11 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-# Uncomment the following lines to disable Swagger UI and API docs in production
-#springdoc:
-#  api-docs:
-#    enabled: false
-#  swagger-ui:
-#    enabled: false
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 
 jwt:
   secret-key: ${JWT_SECRET}
@@ -73,3 +71,11 @@ app:
   frontend-url: ${FRONTEND_URL}
   otp-expiration-minutes: ${OTP_EXPIRATION_MINUTES}
   reset-token-expiration-minutes: ${RESET_TOKEN_EXPIRATION_MINUTES}
+  cookie-secure: true
+  cookie-same-site: Lax
+
+supabase:
+  url: ${SUPABASE_URL}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
+  storage:
+    public-base-url: ${SUPABASE_STORAGE_PUBLIC_BASE_URL:${SUPABASE_URL}} # public base url

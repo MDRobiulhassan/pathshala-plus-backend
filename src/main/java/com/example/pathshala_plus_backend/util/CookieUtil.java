@@ -1,8 +1,6 @@
 package com.example.pathshala_plus_backend.util;
 
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
@@ -15,23 +13,29 @@ public class CookieUtil {
     @Value("${jwt.access-token-expiration-minutes}")
     private int accessTokenExpirationMinutes;
 
+    @Value("${app.cookie-secure}")
+    private boolean cookieSecure;
+
+    @Value("${app.cookie-same-site}")
+    private String cookieSameSite;
+
     public ResponseCookie createAccessCookie(String token) {
         return ResponseCookie.from("access_token", token)
                 .httpOnly(true)
-                .secure(false) // true in production
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(accessTokenExpirationMinutes * 60L)
-                .sameSite("Lax")
+                .sameSite(cookieSameSite)
                 .build();
     }
 
     public ResponseCookie createRefreshCookie(String token) {
         return ResponseCookie.from("refresh_token", token)
                 .httpOnly(true)
-                .secure(false) // true in production
-                .path("/") // /api/v1/auth/refresh on production
+                .secure(cookieSecure)
+                .path("/api/v1/auth/refresh")
                 .maxAge(refreshTokenExpirationDays * 24L * 60L * 60L)
-                .sameSite("Lax")
+                .sameSite(cookieSameSite)
                 .build();
     }
 
@@ -45,7 +49,7 @@ public class CookieUtil {
 
     public ResponseCookie clearRefreshCookie() {
         return ResponseCookie.from("refresh_token", "")
-                .path("/")
+                .path("/api/v1/auth/refresh")
                 .httpOnly(true)
                 .maxAge(0)
                 .build();

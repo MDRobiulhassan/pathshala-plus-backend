@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -102,7 +103,7 @@ public class AuthServiceImpl implements AuthService {
         return new SignupResponse(savedUser.getId(), roleName);
     }
 
-    private void validateSignupRequest(SignupRequest signupRequest) {   // <-- helper starts here, NOT inside signup
+    private void validateSignupRequest(SignupRequest signupRequest) {
         if (!signupRequest.password().equals(signupRequest.confirmPassword())) {
             throw new BadRequestException("Passwords do not match");
         }
@@ -122,21 +123,20 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest loginRequest, HttpServletResponse response) {
-        User user = userRepository.findByEmail(loginRequest.email())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + loginRequest.email()));
-
-        if (!passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
+            );
+        } catch (BadCredentialsException e) {
             throw new UnauthorizedException("Invalid email or password");
         }
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.email(),
-                        loginRequest.password()
-                )
-        );
+        if (!(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+            throw new UnauthorizedException("Authentication failed");
+        }
 
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
 
         String rawAccessToken = jwtTokenProvider.generateAccessToken(authentication);
         String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
@@ -144,7 +144,6 @@ public class AuthServiceImpl implements AuthService {
         RefreshToken refreshTokenEntity = refreshTokenMapper.toRefreshToken(user, rawRefreshToken, Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
         refreshTokenRepository.save(refreshTokenEntity);
 
-        assert userDetails != null;
         RoleName role = user.getUserRoles().get(0).getRole().getName();
 
         authenticationCookieWriter.addAuthCookies(response, rawAccessToken, rawRefreshToken);
