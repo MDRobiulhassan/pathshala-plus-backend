@@ -45,6 +45,11 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final UserRoleRepository userRoleRepository;
     private final AuthenticationCookieWriter authenticationCookieWriter;
 
+    private final UserMapper userMapper;
+    private final UserRoleMapper userRoleMapper;
+    private final OauthUserMapper oauthUserMapper;
+    private final RefreshTokenMapper refreshTokenMapper;
+
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
@@ -74,7 +79,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         User user = userRepository.findByEmail(email).orElse(null);
 
         if (user == null) {
-            user = UserMapper.fromOauth2UserInfo(
+            user = userMapper.fromOauth2UserInfo(
                     name,
                     email,
                     languageService.findLanguageByCode("bn"),
@@ -83,21 +88,21 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             user = userRepository.save(user);
 
             Role role = roleService.findRoleByName(SignupRole.STUDENT);
-            UserRole userRole = UserRoleMapper.toUserRole(user, role);
+            UserRole userRole = userRoleMapper.toUserRole(user, role);
             userRoleRepository.save(userRole);
         }
 
         boolean hasOauthAccount = userOauthAccountRepository.existsByUserIdAndProvider(user.getId(), Provider.GOOGLE);
 
         if (!hasOauthAccount) {
-            UserOauthAccount oauthAccount = OauthUserMapper.toUserOauthAccount(user, Provider.GOOGLE, sub);
+            UserOauthAccount oauthAccount = oauthUserMapper.toUserOauthAccount(user, Provider.GOOGLE, sub);
             userOauthAccountRepository.save(oauthAccount);
         }
 
         String rawAccessToken = jwtTokenProvider.generateAccessToken(authentication);
         String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
-        RefreshToken refreshToken = RefreshTokenMapper.toRefreshToken(
+        RefreshToken refreshToken = refreshTokenMapper.toRefreshToken(
                 user,
                 rawRefreshToken,
                 Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS)

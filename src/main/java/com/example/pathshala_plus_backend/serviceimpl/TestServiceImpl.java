@@ -48,6 +48,8 @@ public class TestServiceImpl implements TestService {
     TestAnswerRepository testAnswerRepository;
     QuestionOptionRepository questionOptionRepository;
     AuthUtil authUtil;
+    TestAttemptMapper testAttemptMapper;
+    TestAnswerMapper testAnswerMapper;
 
     private static final Duration SUBMISSION_GRACE_PERIOD = Duration.ofSeconds(30);
 
@@ -94,7 +96,7 @@ public class TestServiceImpl implements TestService {
         }
 
         User user = userRepository.getReferenceById(userId);
-        TestAttempt attempt = TestAttemptMapper.fromTestAndUser(test, user);
+        TestAttempt attempt = testAttemptMapper.fromTestAndUser(test, user);
 
         try {
             attempt = testAttemptRepository.saveAndFlush(attempt);
@@ -209,7 +211,7 @@ public class TestServiceImpl implements TestService {
 
             TestAnswer answer = existingAnswers.getOrDefault(
                     questionId,
-                    TestAnswerMapper.toTestAnswer(attempt, questionRepository.getReferenceById(questionId)));
+                    testAnswerMapper.toTestAnswer(attempt, questionRepository.getReferenceById(questionId)));
 
             if (answerRequest.selectedOptionId() == null) {
                 answer.setSelectedOption(null);
@@ -258,7 +260,7 @@ public class TestServiceImpl implements TestService {
                 ));
 
         TestScoreSummary summary = calculateScore(attempt.getTest(), answers, correctOptionByQuestionId);
-        TestAttemptMapper.completeAttempt(attempt, summary);
+        testAttemptMapper.completeAttempt(attempt, summary);
 
         try {
             testAttemptRepository.saveAndFlush(attempt);
@@ -426,7 +428,7 @@ public class TestServiceImpl implements TestService {
                 .collect(Collectors.toMap(o -> o.getQuestion().getId(), QuestionOption::getId));
 
         TestScoreSummary summary = calculateScore(attempt.getTest(), answers, correctOptionByQuestionId);
-        TestAttemptMapper.completeAttempt(attempt, summary);
+        testAttemptMapper.completeAttempt(attempt, summary);
         testAttemptRepository.saveAndFlush(attempt);
     }
 
