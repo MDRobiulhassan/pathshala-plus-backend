@@ -23,8 +23,8 @@ services:
     image: postgres:16
     container_name: pathshala-database-container
     restart: unless-stopped
-#    ports:
-#      - "${POSTGRES_PORT}:5432"
+    ports:
+      - "${POSTGRES_PORT}:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
