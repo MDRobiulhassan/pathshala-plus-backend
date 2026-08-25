@@ -180,6 +180,10 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             throw new InvalidRequestException("Current password is incorrect");
         }
 
+        if (request.newPassword().equals(request.currentPassword())) {
+            throw new InvalidRequestException("New password must be different from current password");
+        }
+
         if (!request.newPassword().equals(request.confirmNewPassword())) {
             throw new InvalidRequestException("New password and confirm password do not match");
         }
