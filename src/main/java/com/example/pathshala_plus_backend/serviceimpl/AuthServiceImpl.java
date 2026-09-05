@@ -79,7 +79,8 @@ public class AuthServiceImpl implements AuthService {
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleName));
 
-        User user = userMapper.fromSignupRequest(signupRequest, language, educationLevel, passwordEncoder);
+        User user = userMapper.fromSignupRequest(signupRequest, language, educationLevel);
+        user.setPassword(passwordEncoder.encode(signupRequest.password()));
         User savedUser = userRepository.save(user);
 
         UserRole userRole = userRoleMapper.toUserRole(savedUser, role);
