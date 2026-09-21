@@ -1,5 +1,7 @@
 package com.example.pathshala_plus_backend.serviceimpl;
 
+import com.example.pathshala_plus_backend.Mapper.ExamInfoMapper;
+import com.example.pathshala_plus_backend.Mapper.QuestionMapper;
 import com.example.pathshala_plus_backend.dto.response.question.examinfoquestion.*;
 import com.example.pathshala_plus_backend.dto.response.question.subjectquestion.PassageWithTagResponse;
 import com.example.pathshala_plus_backend.dto.response.question.subjectquestion.QuestionWithTagResponse;
@@ -37,6 +39,8 @@ public class QuestionServiceImpl implements QuestionService {
     QuestionRepository questionRepository;
     ExamInfoRepository examInfoRepository;
     SubjectRepository subjectRepository;
+    QuestionMapper questionMapper;
+    ExamInfoMapper examInfoMapper;
 
     @Override
     public ExamQuestionsResponse getQuestionsByExamInfo(Long examInfoId) {
@@ -50,7 +54,7 @@ public class QuestionServiceImpl implements QuestionService {
         }
 
         return new ExamQuestionsResponse(
-                toExamInfoResponse(examInfo),
+                examInfoMapper.toQuestionExamInfoResponse(examInfo),
                 questions.get(0).getLanguage().getCode(),
                 toSubjectResponses(questions)
         );
@@ -67,50 +71,27 @@ public class QuestionServiceImpl implements QuestionService {
         List<PassageWithTagResponse> passages = List.of();
         if (!idPage.isEmpty()) {
             List<Question> questions = questionRepository.findByIdsWithDetails(idPage.getContent());
-
             passages = groupByPassage(questions);
         }
 
-        return new SubjectBrowseResponse(
-                subject.getId(),
-                subject.getName(),
-                idPage.getNumber(),
-                idPage.getSize(),
-                idPage.getTotalElements(),
-                idPage.getTotalPages(),
-                passages
-        );
+        return questionMapper.toSubjectBrowseResponse(subject, idPage, passages);
     }
 
-    /* ----------------------------------------
-     * Private Helper Methods
-     * ---------------------------------------- */
-
-    /* ----------------------------------------
-     * Question Mappers
-     * ---------------------------------------- */
+    /* ---------------------------------------- */
 
     private List<SubjectQuestionsResponse> toSubjectResponses(List<Question> questions) {
         return groupBySubject(questions).entrySet().stream()
-                .map(e -> new SubjectQuestionsResponse(
-                        e.getKey().getId(),
-                        e.getKey().getName(),
-                        toChapterResponses(e.getValue())
-                ))
+                .map(e -> questionMapper.toSubjectQuestionsResponse(
+                        e.getKey(),
+                        toChapterResponses(e.getValue())))
                 .toList();
     }
 
     private List<ChapterQuestionsResponse> toChapterResponses(Map<Chapter, List<Question>> byChapter) {
         return byChapter.entrySet().stream()
-                .map(e -> {
-                    Chapter chapter = e.getKey();
-                    boolean noChapter = chapter == Chapter.NONE;
-                    return new ChapterQuestionsResponse(
-                            noChapter ? null : chapter.getId(),
-                            noChapter ? null : chapter.getName(),
-                            toPassageResponses(e.getValue())
-                    );
-                })
+                .map(e -> questionMapper.toChapterQuestionsResponse(
+                        e.getKey(),
+                        toPassageResponses(e.getValue())))
                 .toList();
     }
 
@@ -127,27 +108,6 @@ public class QuestionServiceImpl implements QuestionService {
                 ));
     }
 
-    private QuestionExamInfoResponse toExamInfoResponse(ExamInfo examInfo) {
-        return new QuestionExamInfoResponse(
-                examInfo.getId(),
-                examInfo.getExamType(),
-                examInfo.getTotalMarks(),
-                examInfo.getDurationInMinutes()
-        );
-    }
-
-    private QuestionResponse toQuestionResponse(Question question) {
-        return new QuestionResponse(
-                question.getId(),
-                question.getQuestionText(),
-                question.getImageUrl(),
-                question.getExplanation(),
-                question.getDifficulty(),
-                question.getIsApproved(),
-                toOptionResponses(question)
-        );
-    }
-
     private List<PassageQuestionsResponse> toPassageResponses(List<Question> questions) {
         return questions.stream()
                 .collect(Collectors.groupingBy(
@@ -156,62 +116,10 @@ public class QuestionServiceImpl implements QuestionService {
                         Collectors.toList()
                 ))
                 .values().stream()
-                .map(questionList -> {
-                    Question first = questionList.get(0);
-                    Passage passage = first.getPassage();
-                    return new PassageQuestionsResponse(
-                            passage != null ? passage.getId() : null,
-                            passage != null ? passage.getPassageText() : null,
-                            passage != null ? passage.getImageUrl() : null,
-                            questionList.stream().map(this::toQuestionResponse).toList()
-                    );
-                })
+                .map(questionList -> questionMapper.toPassageQuestionsResponse(
+                        questionList.get(0).getPassage(),
+                        questionList.stream().map(questionMapper::toQuestionResponse).toList()))
                 .toList();
-    }
-
-    private List<QuestionOptionResponse> toOptionResponses(Question question) {
-        return question.getOptions().stream()
-                .map(option -> new QuestionOptionResponse(
-                        option.getId(),
-                        option.getOptionLabel(),
-                        option.getOptionText(),
-                        option.getIsCorrect(),
-                        option.getImageUrl()
-                ))
-                .toList();
-    }
-
-
-    /* ----------------------------------------
-     * Subject Browse Mappers
-     * ---------------------------------------- */
-
-    private QuestionWithTagResponse toQuestionWithTagResponse(Question question) {
-        ExamInfo examInfo = question.getExamInfo();
-        ExamSession examSession = examInfo.getExamSession();
-
-        List<QuestionOptionResponse> options = question.getOptions().stream()
-                .map(o -> new QuestionOptionResponse(
-                        o.getId(),
-                        o.getOptionLabel(),
-                        o.getOptionText(),
-                        o.getIsCorrect(),
-                        o.getImageUrl()
-                ))
-                .toList();
-
-        return new QuestionWithTagResponse(
-                question.getId(),
-                question.getQuestionText(),
-                question.getImageUrl(),
-                question.getExplanation(),
-                question.getDifficulty(),
-                question.getIsApproved(),
-                examSession.getInstitute().getName(),
-                examInfo.getUnit() != null ? examInfo.getUnit().getName() : null,
-                examSession.getSessionLabel(),
-                options
-        );
     }
 
     private List<PassageWithTagResponse> groupByPassage(List<Question> questions) {
@@ -223,21 +131,9 @@ public class QuestionServiceImpl implements QuestionService {
         }
 
         return grouped.values().stream()
-                .map(group -> {
-                    Question first = group.get(0);
-                    Passage passage = first.getPassage();
-
-                    List<QuestionWithTagResponse> questionResponses = group.stream()
-                            .map(this::toQuestionWithTagResponse)
-                            .toList();
-
-                    return new PassageWithTagResponse(
-                            passage != null ? passage.getId() : null,
-                            passage != null ? passage.getPassageText() : null,
-                            passage != null ? passage.getImageUrl() : null,
-                            questionResponses
-                    );
-                })
+                .map(group -> questionMapper.toPassageWithTagResponse(
+                        group.get(0).getPassage(),
+                        group.stream().map(questionMapper::toQuestionWithTagResponse).toList()))
                 .toList();
     }
 }

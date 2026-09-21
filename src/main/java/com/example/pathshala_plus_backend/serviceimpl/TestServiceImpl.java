@@ -2,6 +2,9 @@ package com.example.pathshala_plus_backend.serviceimpl;
 
 import com.example.pathshala_plus_backend.Mapper.TestAnswerMapper;
 import com.example.pathshala_plus_backend.Mapper.TestAttemptMapper;
+import com.example.pathshala_plus_backend.Mapper.TestQuestionMapper;
+import com.example.pathshala_plus_backend.Mapper.TestResultMapper;
+import com.example.pathshala_plus_backend.Mapper.TestTypeMapper;
 import com.example.pathshala_plus_backend.dto.request.test.AnswerRequest;
 import com.example.pathshala_plus_backend.dto.request.test.SaveAnswersRequest;
 import com.example.pathshala_plus_backend.dto.response.test.TestAttemptResponse;
@@ -50,17 +53,19 @@ public class TestServiceImpl implements TestService {
     AuthUtil authUtil;
     TestAttemptMapper testAttemptMapper;
     TestAnswerMapper testAnswerMapper;
+    TestTypeMapper testTypeMapper;
+    TestQuestionMapper testQuestionMapper;
+    TestResultMapper testResultMapper;
 
     private static final Duration SUBMISSION_GRACE_PERIOD = Duration.ofSeconds(30);
 
     @Override
     public List<TestTypeResponse> getAllTestTypes() {
         List<TestType> testTypes = testTypeRepository.findAll();
+
         return testTypes.stream()
-                .map(testType -> new TestTypeResponse(
-                        testType.getId(),
-                        testType.getTestTypeName()
-                )).toList();
+                .map(testTypeMapper::toTestTypeResponse)
+                .toList();
     }
 
     @Override
@@ -71,10 +76,7 @@ public class TestServiceImpl implements TestService {
         );
 
         return testTypes.stream()
-                .map(testType -> new TestTypeResponse(
-                        testType.getId(),
-                        testType.getTestTypeName()
-                ))
+                .map(testTypeMapper::toTestTypeResponse)
                 .toList();
     }
 
@@ -83,15 +85,22 @@ public class TestServiceImpl implements TestService {
 
         Long userId = authUtil.getCurrentUserId();
 
-        Test test = testRepository.findById(testId).orElseThrow(() -> new ResourceNotFoundException("Test not found"));
-        Optional<TestAttempt> existingAttempt = testAttemptRepository.findByTestIdAndUserIdAndCompletedFalse(testId, userId);
+        Test test = testRepository.findById(testId)
+                .orElseThrow(() -> new ResourceNotFoundException("Test not found"));
+
+        Optional<TestAttempt> existingAttempt =
+                testAttemptRepository.findByTestIdAndUserIdAndCompletedFalse(
+                        testId,
+                        userId
+                );
 
         if (existingAttempt.isPresent()) {
             TestAttempt attempt = existingAttempt.get();
+
             if (isExpired(attempt)) {
                 autoSubmitExpiredAttempt(attempt);
             } else {
-                return toAttemptResponse(attempt, true);
+                return testAttemptMapper.toAttemptResponse(attempt, true);
             }
         }
 
@@ -101,128 +110,175 @@ public class TestServiceImpl implements TestService {
         try {
             attempt = testAttemptRepository.saveAndFlush(attempt);
         } catch (DataIntegrityViolationException ex) {
-            attempt = testAttemptRepository.findByTestIdAndUserIdAndCompletedFalse(testId, userId)
+            attempt = testAttemptRepository
+                    .findByTestIdAndUserIdAndCompletedFalse(testId, userId)
                     .orElseThrow(() -> ex);
-            return toAttemptResponse(attempt, true);
+
+            return testAttemptMapper.toAttemptResponse(attempt, true);
         }
-        return toAttemptResponse(attempt, false);
+
+        return testAttemptMapper.toAttemptResponse(attempt, false);
     }
 
     @Override
     public TestQuestionsResponse getTestAttemptWithQuestions(Long attemptId) {
+
         TestAttempt attempt = testAttemptRepository.findById(attemptId)
-                .orElseThrow(() -> new ResourceNotFoundException("Test Attempt Not Found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Test Attempt Not Found")
+                );
 
         if (!attempt.getUser().getId().equals(authUtil.getCurrentUserId())) {
-            throw new BadRequestException("User not authorized to view this attempt");
+            throw new BadRequestException(
+                    "User not authorized to view this attempt"
+            );
         }
 
-        List<TestQuestion> testQuestions = testQuestionRepository
-                .findByTestIdWithQuestions(attempt.getTest().getId());
+        List<Question> questions = findQuestionsByTestId(
+                attempt.getTest().getId()
+        );
 
-        if (testQuestions.isEmpty()) {
-            throw new ResourceNotFoundException("No questions found for this test");
+        if (questions.isEmpty()) {
+            throw new ResourceNotFoundException(
+                    "No questions found for this test"
+            );
         }
 
-        List<Question> questions = testQuestions.stream()
-                .map(TestQuestion::getQuestion)
-                .toList();
+        Map<Long, List<QuestionOption>> optionsByQuestionId =
+                findOptionsByQuestionId(questions);
 
-        List<Long> questionIds = questions.stream()
-                .map(Question::getId)
-                .toList();
-
-        Map<Long, List<QuestionOption>> optionsByQuestionId = questionOptionRepository
-                .findByQuestionIds(questionIds)
-                .stream()
-                .collect(Collectors.groupingBy(option -> option.getQuestion().getId()));
-
-        Map<Long, TestAnswer> answerMap = testAnswerRepository.findByTestAttemptId(attemptId)
-                .stream()
-                .collect(Collectors.toMap(
-                        answer -> answer.getQuestion().getId(),
-                        answer -> answer
-                ));
+        Map<Long, TestAnswer> answerMap =
+                testAnswerRepository.findByTestAttemptId(attemptId)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                answer -> answer.getQuestion().getId(),
+                                answer -> answer
+                        ));
 
         return new TestQuestionsResponse(
-                toTestInfoResponse(attempt),
+                testAttemptMapper.toTestInfoResponse(attempt),
                 questions.get(0).getLanguage().getCode(),
-                toSubjectResponses(questions, answerMap, optionsByQuestionId)
+                toSubjectResponses(
+                        questions,
+                        answerMap,
+                        optionsByQuestionId
+                )
         );
     }
 
     @Override
-    public void saveProgress(Long attemptId, SaveAnswersRequest request) {
+    public void saveProgress(
+            Long attemptId,
+            SaveAnswersRequest request) {
+
         Long userId = authUtil.getCurrentUserId();
 
         TestAttempt attempt = testAttemptRepository.findById(attemptId)
-                .orElseThrow(() -> new ResourceNotFoundException("Test Attempt Not Found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Test Attempt Not Found"
+                        )
+                );
 
         if (!attempt.getUser().getId().equals(userId)) {
-            throw new BadRequestException("User not authorized to save progress for this attempt");
+            throw new BadRequestException(
+                    "User not authorized to save progress for this attempt"
+            );
         }
+
         if (attempt.getCompleted()) {
-            throw new BadRequestException("Cannot save progress for a completed attempt");
+            throw new BadRequestException(
+                    "Cannot save progress for a completed attempt"
+            );
         }
+
         validateAttemptNotExpired(attempt, Duration.ZERO);
+
         if (request.answers() == null || request.answers().isEmpty()) {
             return;
         }
 
         Long testId = attempt.getTest().getId();
 
-        Set<Long> validQuestionIds = testQuestionRepository.findQuestionIdsByTestId(testId);
+        Set<Long> validQuestionIds =
+                testQuestionRepository.findQuestionIdsByTestId(testId);
 
-        Map<Long, AnswerRequest> dedupedAnswers = request.answers().stream()
-                .collect(Collectors.toMap(
-                        AnswerRequest::questionId,
-                        a -> a,
-                        (first, second) -> second,
-                        LinkedHashMap::new
-                ));
+        Map<Long, AnswerRequest> dedupedAnswers =
+                request.answers().stream()
+                        .collect(Collectors.toMap(
+                                AnswerRequest::questionId,
+                                a -> a,
+                                (first, second) -> second,
+                                LinkedHashMap::new
+                        ));
 
         for (Long questionId : dedupedAnswers.keySet()) {
             if (!validQuestionIds.contains(questionId)) {
-                throw new BadRequestException("Question does not belong to this test");
+                throw new BadRequestException(
+                        "Question does not belong to this test"
+                );
             }
         }
 
-        List<Long> incomingOptionIds = dedupedAnswers.values().stream()
-                .map(AnswerRequest::selectedOptionId)
-                .filter(Objects::nonNull)
-                .toList();
+        List<Long> incomingOptionIds =
+                dedupedAnswers.values().stream()
+                        .map(AnswerRequest::selectedOptionId)
+                        .filter(Objects::nonNull)
+                        .toList();
 
-        Map<Long, QuestionOption> optionMap = incomingOptionIds.isEmpty()
-                ? Map.of()
-                : questionOptionRepository.findAllById(incomingOptionIds)
-                .stream()
-                .collect(Collectors.toMap(QuestionOption::getId, option -> option));
+        Map<Long, QuestionOption> optionMap =
+                incomingOptionIds.isEmpty()
+                        ? Map.of()
+                        : questionOptionRepository
+                        .findAllById(incomingOptionIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                QuestionOption::getId,
+                                option -> option
+                        ));
 
-        Map<Long, TestAnswer> existingAnswers = testAnswerRepository
-                .findByTestAttemptId(attemptId)
-                .stream()
-                .collect(Collectors.toMap(
-                        answer -> answer.getQuestion().getId(), ans -> ans));
+        Map<Long, TestAnswer> existingAnswers =
+                testAnswerRepository
+                        .findByTestAttemptId(attemptId)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                answer -> answer.getQuestion().getId(),
+                                ans -> ans
+                        ));
 
         List<TestAnswer> toSave = new ArrayList<>();
 
         for (AnswerRequest answerRequest : dedupedAnswers.values()) {
+
             Long questionId = answerRequest.questionId();
 
             TestAnswer answer = existingAnswers.getOrDefault(
                     questionId,
-                    testAnswerMapper.toTestAnswer(attempt, questionRepository.getReferenceById(questionId)));
+                    testAnswerMapper.toTestAnswer(
+                            attempt,
+                            questionRepository.getReferenceById(questionId)
+                    )
+            );
 
             if (answerRequest.selectedOptionId() == null) {
                 answer.setSelectedOption(null);
             } else {
-                QuestionOption option = optionMap.get(answerRequest.selectedOptionId());
+
+                QuestionOption option =
+                        optionMap.get(answerRequest.selectedOptionId());
+
                 if (option == null) {
-                    throw new ResourceNotFoundException("Option not found");
+                    throw new ResourceNotFoundException(
+                            "Option not found"
+                    );
                 }
+
                 if (!option.getQuestion().getId().equals(questionId)) {
-                    throw new BadRequestException("Option does not belong to question");
+                    throw new BadRequestException(
+                            "Option does not belong to question"
+                    );
                 }
+
                 answer.setSelectedOption(option);
             }
 
@@ -235,116 +291,146 @@ public class TestServiceImpl implements TestService {
 
     @Override
     public void submitTestAttempt(Long attemptId) {
+
         Long userId = authUtil.getCurrentUserId();
 
         TestAttempt attempt = testAttemptRepository.findById(attemptId)
-                .orElseThrow(() -> new ResourceNotFoundException("Test attempt not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Test attempt not found"
+                        )
+                );
 
         if (!attempt.getUser().getId().equals(userId)) {
-            throw new BadRequestException("User not authorized to submit this attempt");
+            throw new BadRequestException(
+                    "User not authorized to submit this attempt"
+            );
         }
-        if (attempt.getCompleted()) {
-            throw new BadRequestException("Test has already been submitted");
-        }
-        validateAttemptNotExpired(attempt, SUBMISSION_GRACE_PERIOD);
 
-        List<TestAnswer> answers = testAnswerRepository.findByTestAttemptId(attemptId);
+        if (attempt.getCompleted()) {
+            throw new BadRequestException(
+                    "Test has already been submitted"
+            );
+        }
+
+        validateAttemptNotExpired(
+                attempt,
+                SUBMISSION_GRACE_PERIOD
+        );
+
+        List<TestAnswer> answers =
+                testAnswerRepository.findByTestAttemptId(attemptId);
 
         Long testId = attempt.getTest().getId();
-        Map<Long, Long> correctOptionByQuestionId = questionOptionRepository
-                .findCorrectOptionsByTestId(testId)
-                .stream()
-                .collect(Collectors.toMap(
-                        o -> o.getQuestion().getId(),
-                        QuestionOption::getId
-                ));
 
-        TestScoreSummary summary = calculateScore(attempt.getTest(), answers, correctOptionByQuestionId);
-        testAttemptMapper.completeAttempt(attempt, summary);
+        Map<Long, Long> correctOptionByQuestionId =
+                questionOptionRepository
+                        .findCorrectOptionsByTestId(testId)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                o -> o.getQuestion().getId(),
+                                QuestionOption::getId
+                        ));
+
+        TestScoreSummary summary =
+                calculateScore(
+                        attempt.getTest(),
+                        answers,
+                        correctOptionByQuestionId
+                );
+
+        testAttemptMapper.completeAttempt(
+                attempt,
+                summary
+        );
 
         try {
             testAttemptRepository.saveAndFlush(attempt);
         } catch (OptimisticLockingFailureException e) {
-            throw new BadRequestException("Test has already been submitted");
+            throw new BadRequestException(
+                    "Test has already been submitted"
+            );
         }
     }
 
     @Override
-    public TestResultResponse getTestAttemptResultById(Long attemptId) {
+    public TestResultResponse getTestAttemptResultById(
+            Long attemptId) {
 
         Long userId = authUtil.getCurrentUserId();
 
         TestAttempt attempt = testAttemptRepository.findById(attemptId)
-                .orElseThrow(() -> new ResourceNotFoundException("Test attempt not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Test attempt not found"
+                        )
+                );
 
         if (!attempt.getUser().getId().equals(userId)) {
-            throw new BadRequestException("User not authorized to view this result");
+            throw new BadRequestException(
+                    "User not authorized to view this result"
+            );
         }
 
         if (!attempt.getCompleted()) {
-            throw new BadRequestException("Test has not been submitted yet");
+            throw new BadRequestException(
+                    "Test has not been submitted yet"
+            );
         }
 
-        Long testId = attempt.getTest().getId();
-
-        List<Question> questions = testQuestionRepository.findByTestIdWithQuestions(testId)
-                .stream()
-                .map(TestQuestion::getQuestion)
-                .toList();
-
-        List<Long> questionIds = questions.stream()
-                .map(Question::getId)
-                .toList();
-
-        Map<Long, List<QuestionOption>> optionsByQuestionId = questionOptionRepository
-                .findByQuestionIds(questionIds)
-                .stream()
-                .collect(Collectors.groupingBy(option -> option.getQuestion().getId()));
-
-        Map<Long, TestAnswer> answerByQuestionId = testAnswerRepository
-                .findByTestAttemptId(attemptId)
-                .stream()
-                .collect(Collectors.toMap(
-                        answer -> answer.getQuestion().getId(),
-                        answer -> answer
-                ));
-
-        TestResultSummaryResponse summary = toTestResultSummaryResponse(
-                attempt,
-                attempt.getTest(),
-                attempt.getPassed(),
-                attempt.getCorrectAnswers(),
-                attempt.getIncorrectAnswers(),
-                attempt.getUnansweredQuestions()
+        List<Question> questions = findQuestionsByTestId(
+                attempt.getTest().getId()
         );
 
-        List<SubjectResultResponse> subjects = toSubjectResultResponses(
-                questions,
-                optionsByQuestionId,
-                answerByQuestionId
-        );
+        Map<Long, List<QuestionOption>> optionsByQuestionId =
+                findOptionsByQuestionId(questions);
 
-        return new TestResultResponse(summary, subjects);
+        Map<Long, TestAnswer> answerByQuestionId =
+                testAnswerRepository
+                        .findByTestAttemptId(attemptId)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                answer -> answer.getQuestion().getId(),
+                                answer -> answer
+                        ));
+
+        TestResultSummaryResponse summary =
+                testResultMapper.toSummaryResponse(
+                        attempt,
+                        attempt.getTest(),
+                        attempt.getPassed(),
+                        attempt.getCorrectAnswers(),
+                        attempt.getIncorrectAnswers(),
+                        attempt.getUnansweredQuestions()
+                );
+
+        List<SubjectResultResponse> subjects =
+                toSubjectResultResponses(
+                        questions,
+                        optionsByQuestionId,
+                        answerByQuestionId
+                );
+
+        return new TestResultResponse(
+                summary,
+                subjects
+        );
     }
 
     @Override
     public TestAttemptHistory getUserTestAttempts() {
+
         Long userId = authUtil.getCurrentUserId();
-        List<TestAttemptHistoryItem> attempts = testAttemptRepository.findByUserIdAndCompletedTrueOrderByFinishedAtDesc(userId)
-                .stream()
-                .map(attempt -> new TestAttemptHistoryItem(
-                        attempt.getId(),
-                        attempt.getTest().getId(),
-                        attempt.getTest().getName(),
-                        attempt.getScore(),
-                        attempt.getPassed(),
-                        attempt.getFinishedAt(),
-                        attempt.getFinishedAt() != null
-                                ? (int) Duration.between(
-                                attempt.getStartedAt(),
-                                attempt.getFinishedAt()
-                        ).getSeconds() : 0
-                )).toList();
+
+        List<TestAttemptHistoryItem> attempts =
+                testAttemptRepository
+                        .findByUserIdAndCompletedTrueOrderByFinishedAtDesc(
+                                userId
+                        )
+                        .stream()
+                        .map(testAttemptMapper::toHistoryItem)
+                        .toList();
+
         return new TestAttemptHistory(attempts);
     }
 
@@ -352,30 +438,53 @@ public class TestServiceImpl implements TestService {
      * Private Helper Methods
      * ---------------------------------------- */
 
-    private TestAttemptResponse toAttemptResponse(TestAttempt attempt, Boolean resumed) {
-        return new TestAttemptResponse(
-                attempt.getId(),
-                attempt.getTest().getId(),
-                attempt.getStartedAt(),
-                attempt.getFinishedAt(),
-                attempt.getScore(),
-                attempt.getCompleted(),
-                resumed
-        );
+    private List<Question> findQuestionsByTestId(Long testId) {
+
+        return testQuestionRepository
+                .findByTestIdWithQuestions(testId)
+                .stream()
+                .map(TestQuestion::getQuestion)
+                .toList();
     }
 
-    private TestScoreSummary calculateScore(Test test, List<TestAnswer> answers, Map<Long, Long> correctOptionByQuestionId) {
+    private Map<Long, List<QuestionOption>> findOptionsByQuestionId(
+            List<Question> questions) {
+
+        if (questions.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> questionIds = questions.stream()
+                .map(Question::getId)
+                .toList();
+
+        return questionOptionRepository
+                .findByQuestionIds(questionIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        option -> option.getQuestion().getId()
+                ));
+    }
+
+    private TestScoreSummary calculateScore(
+            Test test,
+            List<TestAnswer> answers,
+            Map<Long, Long> correctOptionByQuestionId) {
 
         int correct = 0;
         int incorrect = 0;
         int unanswered = 0;
         float score = 0f;
 
-        float negativeMarks = test.getNegativeMarksPerQuestion() == null
-                ? 0f
-                : Math.abs(test.getNegativeMarksPerQuestion());
+        float negativeMarks =
+                test.getNegativeMarksPerQuestion() == null
+                        ? 0f
+                        : Math.abs(
+                        test.getNegativeMarksPerQuestion()
+                );
 
         for (TestAnswer answer : answers) {
+
             if (answer.getSelectedOption() == null) {
                 unanswered++;
                 answer.setIsCorrect(false);
@@ -383,19 +492,30 @@ public class TestServiceImpl implements TestService {
                 continue;
             }
 
-            Long questionId = answer.getQuestion().getId();
-            Long correctOptionId = correctOptionByQuestionId.get(questionId);
+            Long questionId =
+                    answer.getQuestion().getId();
+
+            Long correctOptionId =
+                    correctOptionByQuestionId.get(questionId);
 
             if (correctOptionId == null) {
-                throw new ResourceNotFoundException("Correct option not found for question ");
+                throw new ResourceNotFoundException(
+                        "Correct option not found for question "
+                );
             }
 
-            boolean isCorrect = answer.getSelectedOption().getId().equals(correctOptionId);
+            boolean isCorrect =
+                    answer.getSelectedOption()
+                            .getId()
+                            .equals(correctOptionId);
+
             answer.setIsCorrect(isCorrect);
 
             if (isCorrect) {
                 correct++;
-                answer.setMarksAwarded(test.getMarksPerQuestion());
+                answer.setMarksAwarded(
+                        test.getMarksPerQuestion()
+                );
                 score += test.getMarksPerQuestion();
             } else {
                 incorrect++;
@@ -404,44 +524,95 @@ public class TestServiceImpl implements TestService {
             }
         }
 
-        unanswered += test.getTotalQuestions() - answers.size();
+        unanswered +=
+                test.getTotalQuestions() - answers.size();
 
-        return new TestScoreSummary(score, correct, incorrect, unanswered);
+        return new TestScoreSummary(
+                score,
+                correct,
+                incorrect,
+                unanswered
+        );
     }
 
-
     private boolean isExpired(TestAttempt attempt) {
-        Integer durationMinutes = attempt.getTest().getDurationMinutes();
+
+        Integer durationMinutes =
+                attempt.getTest().getDurationMinutes();
+
         if (durationMinutes == null) {
             return false;
         }
-        Instant deadline = attempt.getStartedAt().plus(Duration.ofMinutes(durationMinutes));
+
+        Instant deadline =
+                attempt.getStartedAt()
+                        .plus(
+                                Duration.ofMinutes(
+                                        durationMinutes
+                                )
+                        );
+
         return Instant.now().isAfter(deadline);
     }
 
-    private void autoSubmitExpiredAttempt(TestAttempt attempt) {
-        List<TestAnswer> answers = testAnswerRepository.findByTestAttemptId(attempt.getId());
+    private void autoSubmitExpiredAttempt(
+            TestAttempt attempt) {
 
-        Map<Long, Long> correctOptionByQuestionId = questionOptionRepository
-                .findCorrectOptionsByTestId(attempt.getTest().getId())
-                .stream()
-                .collect(Collectors.toMap(o -> o.getQuestion().getId(), QuestionOption::getId));
+        List<TestAnswer> answers =
+                testAnswerRepository
+                        .findByTestAttemptId(
+                                attempt.getId()
+                        );
 
-        TestScoreSummary summary = calculateScore(attempt.getTest(), answers, correctOptionByQuestionId);
-        testAttemptMapper.completeAttempt(attempt, summary);
+        Map<Long, Long> correctOptionByQuestionId =
+                questionOptionRepository
+                        .findCorrectOptionsByTestId(
+                                attempt.getTest().getId()
+                        )
+                        .stream()
+                        .collect(Collectors.toMap(
+                                o -> o.getQuestion().getId(),
+                                QuestionOption::getId
+                        ));
+
+        TestScoreSummary summary =
+                calculateScore(
+                        attempt.getTest(),
+                        answers,
+                        correctOptionByQuestionId
+                );
+
+        testAttemptMapper.completeAttempt(
+                attempt,
+                summary
+        );
+
         testAttemptRepository.saveAndFlush(attempt);
     }
 
-    private void validateAttemptNotExpired(TestAttempt attempt, Duration gracePeriod) {
+    private void validateAttemptNotExpired(
+            TestAttempt attempt,
+            Duration gracePeriod) {
+
         Test test = attempt.getTest();
+
         if (test.getDurationMinutes() == null) {
             return;
         }
-        Instant deadline = attempt.getStartedAt()
-                .plus(Duration.ofMinutes(test.getDurationMinutes()))
-                .plus(gracePeriod);
+
+        Instant deadline =
+                attempt.getStartedAt()
+                        .plus(
+                                Duration.ofMinutes(
+                                        test.getDurationMinutes()
+                                )
+                        )
+                        .plus(gracePeriod);
+
         if (Instant.now().isAfter(deadline)) {
-            throw new BadRequestException("Time limit for this test has expired");
+            throw new BadRequestException(
+                    "Time limit for this test has expired"
+            );
         }
     }
 
@@ -449,107 +620,135 @@ public class TestServiceImpl implements TestService {
      * Test Question Mappers
      * ---------------------------------------- */
 
-    private TestInfoResponse toTestInfoResponse(TestAttempt attempt) {
-        Test test = attempt.getTest();
-        return new TestInfoResponse(
-                attempt.getId(),
-                test.getExamInfo().getId(),
-                test.getName(),
-                test.getTestType().getTestTypeName(),
-                test.getExamInfo().getExamType(),
-                test.getTotalQuestions(),
-                test.getExamInfo().getTotalMarks(),
-                test.getDurationMinutes(),
-                test.getMarksPerQuestion(),
-                test.getNegativeMarksPerQuestion(),
-                test.getPassMarks()
-        );
+    private List<SubjectQuestionsResponse> toSubjectResponses(
+            List<Question> questions,
+            Map<Long, TestAnswer> answerMap,
+            Map<Long, List<QuestionOption>> optionsByQuestionId) {
+
+        return groupBySubject(questions)
+                .entrySet()
+                .stream()
+                .map(e ->
+                        testQuestionMapper.toSubjectQuestionsResponse(
+                                e.getKey(),
+                                toChapterResponses(
+                                        e.getValue(),
+                                        answerMap,
+                                        optionsByQuestionId
+                                )
+                        )
+                )
+                .toList();
     }
 
-    private List<SubjectQuestionsResponse> toSubjectResponses(List<Question> questions, Map<Long, TestAnswer> answerMap, Map<Long, List<QuestionOption>> optionsByQuestionId) {
-        return groupBySubject(questions).entrySet().stream()
-                .map(e -> new SubjectQuestionsResponse(
-                        e.getKey().getId(),
-                        e.getKey().getName(),
-                        toChapterResponses(e.getValue(), answerMap, optionsByQuestionId)
+    private List<ChapterQuestionsResponse> toChapterResponses(
+            Map<Chapter, List<Question>> byChapter,
+            Map<Long, TestAnswer> answerMap,
+            Map<Long, List<QuestionOption>> optionsByQuestionId) {
+
+        return byChapter.entrySet()
+                .stream()
+                .map(e -> testQuestionMapper.toChapterQuestionsResponse(
+                        e.getKey(),
+                        toPassageResponses(
+                                e.getValue(),
+                                answerMap,
+                                optionsByQuestionId
+                        )
                 ))
                 .toList();
     }
 
-    private List<ChapterQuestionsResponse> toChapterResponses(Map<Chapter, List<Question>> byChapter, Map<Long, TestAnswer> answerMap, Map<Long, List<QuestionOption>> optionsByQuestionId) {
-        return byChapter.entrySet().stream()
-                .map(e -> {
-                    Chapter chapter = e.getKey();
-                    boolean noChapter = chapter == Chapter.NONE;
-                    return new ChapterQuestionsResponse(
-                            noChapter ? null : chapter.getId(),
-                            noChapter ? null : chapter.getName(),
-                            toPassageResponses(e.getValue(), answerMap, optionsByQuestionId)
-                    );
-                })
-                .toList();
-    }
+    private Map<Subject, Map<Chapter, List<Question>>>
+    groupBySubject(List<Question> questions) {
 
-    private Map<Subject, Map<Chapter, List<Question>>> groupBySubject(List<Question> questions) {
         return questions.stream()
                 .collect(Collectors.groupingBy(
                         Question::getSubject,
                         LinkedHashMap::new,
                         Collectors.groupingBy(
-                                q -> q.getChapter() != null ? q.getChapter() : Chapter.NONE,
+                                q -> q.getChapter() != null
+                                        ? q.getChapter()
+                                        : Chapter.NONE,
                                 LinkedHashMap::new,
                                 Collectors.toList()
                         )
                 ));
     }
 
-    private List<PassageQuestionsResponse> toPassageResponses(List<Question> questions, Map<Long, TestAnswer> answerMap, Map<Long, List<QuestionOption>> optionsByQuestionId) {
+    private List<PassageQuestionsResponse> toPassageResponses(
+            List<Question> questions,
+            Map<Long, TestAnswer> answerMap,
+            Map<Long, List<QuestionOption>> optionsByQuestionId) {
+
         return questions.stream()
                 .collect(Collectors.groupingBy(
-                        q -> q.getPassage() != null ? q.getPassage().getId() : -1L,
+                        q -> q.getPassage() != null
+                                ? q.getPassage().getId()
+                                : -1L,
                         LinkedHashMap::new,
                         Collectors.toList()
                 ))
-                .values().stream()
-                .map(group -> {
-                    Passage passage = group.get(0).getPassage();
-                    return new PassageQuestionsResponse(
-                            passage != null ? passage.getId() : null,
-                            passage != null ? passage.getPassageText() : null,
-                            passage != null ? passage.getImageUrl() : null,
-                            group.stream().map(question -> toQuestionResponse(question, answerMap, optionsByQuestionId)).toList()
-                    );
-                })
+                .values()
+                .stream()
+                .map(group -> testQuestionMapper
+                        .toPassageQuestionsResponse(
+                                group.get(0).getPassage(),
+                                group.stream()
+                                        .map(question ->
+                                                toQuestionResponse(
+                                                        question,
+                                                        answerMap,
+                                                        optionsByQuestionId
+                                                )
+                                        )
+                                        .toList()
+                        ))
                 .toList();
     }
 
-    private QuestionResponse toQuestionResponse(Question question, Map<Long, TestAnswer> answerMap, Map<Long, List<QuestionOption>> optionsByQuestionId) {
-        return new QuestionResponse(
-                question.getId(),
-                question.getQuestionText(),
-                question.getImageUrl(),
-                question.getDifficulty(),
+    private QuestionResponse toQuestionResponse(
+            Question question,
+            Map<Long, TestAnswer> answerMap,
+            Map<Long, List<QuestionOption>> optionsByQuestionId) {
+
+        return testQuestionMapper.toQuestionResponse(
+                question,
                 toQuestionOptionResponses(
                         question.getId(),
-                        optionsByQuestionId.getOrDefault(question.getId(), List.of()),
-                        answerMap)
+                        optionsByQuestionId.getOrDefault(
+                                question.getId(),
+                                List.of()
+                        ),
+                        answerMap
+                )
         );
     }
 
-    private List<QuestionOptionResponse> toQuestionOptionResponses(Long questionId, List<QuestionOption> options, Map<Long, TestAnswer> answerMap) {
-        TestAnswer answer = answerMap.get(questionId);
-        Long selectedOptionId = answer != null && answer.getSelectedOption() != null
-                ? answer.getSelectedOption().getId()
-                : null;
+    private List<QuestionOptionResponse>
+    toQuestionOptionResponses(
+            Long questionId,
+            List<QuestionOption> options,
+            Map<Long, TestAnswer> answerMap) {
+
+        TestAnswer answer =
+                answerMap.get(questionId);
+
+        Long selectedOptionId =
+                answer != null &&
+                        answer.getSelectedOption() != null
+                        ? answer.getSelectedOption().getId()
+                        : null;
 
         return options.stream()
-                .map(option -> new QuestionOptionResponse(
-                        option.getId(),
-                        option.getOptionLabel(),
-                        option.getOptionText(),
-                        option.getImageUrl(),
-                        option.getId().equals(selectedOptionId)
-                ))
+                .map(option ->
+                        testQuestionMapper.toOptionResponse(
+                                option,
+                                option.getId().equals(
+                                        selectedOptionId
+                                )
+                        )
+                )
                 .toList();
     }
 
@@ -557,41 +756,39 @@ public class TestServiceImpl implements TestService {
      * Test Result Mappers
      * ---------------------------------------- */
 
-    private TestResultSummaryResponse toTestResultSummaryResponse(
-            TestAttempt attempt,
-            Test test,
-            boolean passed,
-            int correct,
-            int incorrect,
-            int unanswered) {
-
-        return new TestResultSummaryResponse(
-                attempt.getId(),
-                test.getId(),
-                test.getName(),
-                attempt.getScore(),
-                test.getExamInfo().getTotalMarks(),
-                test.getPassMarks(),
-                passed,
-                test.getTotalQuestions(),
-                correct,
-                incorrect,
-                unanswered,
-                attempt.getStartedAt(),
-                attempt.getFinishedAt()
-        );
-    }
-
-    private List<SubjectResultResponse> toSubjectResultResponses(
+    private List<SubjectResultResponse>
+    toSubjectResultResponses(
             List<Question> questions,
             Map<Long, List<QuestionOption>> optionsByQuestionId,
             Map<Long, TestAnswer> answerByQuestionId) {
 
-        return groupBySubject(questions).entrySet().stream()
-                .map(e -> new SubjectResultResponse(
-                        e.getKey().getId(),
-                        e.getKey().getName(),
-                        toChapterResultResponses(
+        return groupBySubject(questions)
+                .entrySet()
+                .stream()
+                .map(e ->
+                        testResultMapper.toSubjectResultResponse(
+                                e.getKey(),
+                                toChapterResultResponses(
+                                        e.getValue(),
+                                        optionsByQuestionId,
+                                        answerByQuestionId
+                                )
+                        )
+                )
+                .toList();
+    }
+
+    private List<ChapterResultResponse>
+    toChapterResultResponses(
+            Map<Chapter, List<Question>> byChapter,
+            Map<Long, List<QuestionOption>> optionsByQuestionId,
+            Map<Long, TestAnswer> answerByQuestionId) {
+
+        return byChapter.entrySet()
+                .stream()
+                .map(e -> testResultMapper.toChapterResultResponse(
+                        e.getKey(),
+                        toPassageResultResponses(
                                 e.getValue(),
                                 optionsByQuestionId,
                                 answerByQuestionId
@@ -600,102 +797,85 @@ public class TestServiceImpl implements TestService {
                 .toList();
     }
 
-    private List<ChapterResultResponse> toChapterResultResponses(
-            Map<Chapter, List<Question>> byChapter,
-            Map<Long, List<QuestionOption>> optionsByQuestionId,
-            Map<Long, TestAnswer> answerByQuestionId) {
-
-        return byChapter.entrySet().stream()
-                .map(e -> {
-                    Chapter chapter = e.getKey();
-                    boolean noChapter = chapter == Chapter.NONE;
-
-                    return new ChapterResultResponse(
-                            noChapter ? null : chapter.getId(),
-                            noChapter ? null : chapter.getName(),
-                            toPassageResultResponses(
-                                    e.getValue(),
-                                    optionsByQuestionId,
-                                    answerByQuestionId
-                            )
-                    );
-                })
-                .toList();
-    }
-
-    private List<PassageResultResponse> toPassageResultResponses(
+    private List<PassageResultResponse>
+    toPassageResultResponses(
             List<Question> questions,
             Map<Long, List<QuestionOption>> optionsByQuestionId,
             Map<Long, TestAnswer> answerByQuestionId) {
 
         return questions.stream()
                 .collect(Collectors.groupingBy(
-                        q -> q.getPassage() != null ? q.getPassage().getId() : -1L,
+                        q -> q.getPassage() != null
+                                ? q.getPassage().getId()
+                                : -1L,
                         LinkedHashMap::new,
                         Collectors.toList()
                 ))
-                .values().stream()
-                .map(group -> {
-
-                    Passage passage = group.get(0).getPassage();
-
-                    return new PassageResultResponse(
-                            passage != null ? passage.getId() : null,
-                            passage != null ? passage.getPassageText() : null,
-                            passage != null ? passage.getImageUrl() : null,
-                            group.stream()
-                                    .map(question -> toQuestionResultResponse(
-                                            question,
-                                            optionsByQuestionId,
-                                            answerByQuestionId
-                                    ))
-                                    .toList()
-                    );
-                })
+                .values()
+                .stream()
+                .map(group -> testResultMapper
+                        .toPassageResultResponse(
+                                group.get(0).getPassage(),
+                                group.stream()
+                                        .map(question ->
+                                                toQuestionResultResponse(
+                                                        question,
+                                                        optionsByQuestionId,
+                                                        answerByQuestionId
+                                                )
+                                        )
+                                        .toList()
+                        ))
                 .toList();
     }
 
-    private QuestionResultResponse toQuestionResultResponse(
+    private QuestionResultResponse
+    toQuestionResultResponse(
             Question question,
             Map<Long, List<QuestionOption>> optionsByQuestionId,
             Map<Long, TestAnswer> answerByQuestionId) {
 
-        TestAnswer answer = answerByQuestionId.get(question.getId());
+        TestAnswer answer =
+                answerByQuestionId.get(question.getId());
 
-        return new QuestionResultResponse(
-                question.getId(),
-                question.getQuestionText(),
-                question.getImageUrl(),
-                question.getDifficulty(),
-                question.getExplanation(),
-                answer != null ? answer.getIsCorrect() : null,
-                answer != null ? answer.getMarksAwarded() : 0f,
+        return testResultMapper.toQuestionResultResponse(
+                question,
+                answer != null
+                        ? answer.getIsCorrect()
+                        : null,
+                answer != null
+                        ? answer.getMarksAwarded()
+                        : 0f,
                 toQuestionOptionResultResponses(
-                        optionsByQuestionId.getOrDefault(question.getId(), List.of()),
+                        optionsByQuestionId.getOrDefault(
+                                question.getId(),
+                                List.of()
+                        ),
                         answer
                 )
         );
     }
 
-    private List<QuestionOptionResultResponse> toQuestionOptionResultResponses(
+    private List<QuestionOptionResultResponse>
+    toQuestionOptionResultResponses(
             List<QuestionOption> options,
             TestAnswer answer) {
 
         Long selectedOptionId =
-                answer != null && answer.getSelectedOption() != null
+                answer != null &&
+                        answer.getSelectedOption() != null
                         ? answer.getSelectedOption().getId()
                         : null;
 
         return options.stream()
-                .map(option -> new QuestionOptionResultResponse(
-                        option.getId(),
-                        option.getOptionLabel(),
-                        option.getOptionText(),
-                        option.getImageUrl(),
-                        option.getId().equals(selectedOptionId),
-                        option.getIsCorrect()
-                ))
+                .map(option ->
+                        testResultMapper.toOptionResultResponse(
+                                option,
+                                option.getId().equals(
+                                        selectedOptionId
+                                )
+                        )
+                )
                 .toList();
     }
-
 }

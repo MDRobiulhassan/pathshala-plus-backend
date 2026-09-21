@@ -1,15 +1,16 @@
 package com.example.pathshala_plus_backend.serviceimpl;
 
+import com.example.pathshala_plus_backend.Mapper.UnitMapper;
 import com.example.pathshala_plus_backend.dto.response.unit.UnitResponse;
 import com.example.pathshala_plus_backend.entity.Unit;
 import com.example.pathshala_plus_backend.repository.UnitRepository;
 import com.example.pathshala_plus_backend.service.UnitService;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -21,16 +22,13 @@ import java.util.List;
 public class UnitServiceImpl implements UnitService {
 
     UnitRepository unitRepository;
+    UnitMapper unitMapper;
 
     @Override
     public List<UnitResponse> getAllUnitByInstitute(Long instituteId) {
         List<Unit> units = unitRepository.findByInstituteIdOrderByNameAsc(instituteId);
         return units.stream()
-                .map(unit -> new UnitResponse(
-                        unit.getId(),
-                        unit.getName(),
-                        unit.getInstitute().getId()
-                ))
+                .map(unitMapper::toUnitResponse)
                 .toList();
     }
 }

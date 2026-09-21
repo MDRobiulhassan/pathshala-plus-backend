@@ -1,5 +1,6 @@
 package com.example.pathshala_plus_backend.serviceimpl;
 
+import com.example.pathshala_plus_backend.Mapper.TestAttemptMapper;
 import com.example.pathshala_plus_backend.dto.response.dashboard.student.ContinueLearningResponse;
 import com.example.pathshala_plus_backend.dto.response.dashboard.student.LearningProgressResponse;
 import com.example.pathshala_plus_backend.dto.response.dashboard.student.RecentTestResponse;
@@ -34,6 +35,7 @@ public class DashboardServiceImpl implements DashboardService {
     TestAttemptRepository testAttemptRepository;
     TestAnswerRepository testAnswerRepository;
     AuthUtil authUtil;
+    TestAttemptMapper testAttemptMapper;
 
     private static final int RECENT_TESTS_LIMIT = 5;
     private static final ZoneId STREAK_ZONE = ZoneId.systemDefault();
@@ -41,18 +43,12 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public StudentDashboardResponse getStudentDashboard() {
         Long userId = authUtil.getCurrentUserId();
-
         return new StudentDashboardResponse(
                 toContinueLearning(userId),
                 toLearningProgress(userId),
                 toRecentTests(userId)
         );
     }
-
-
-    /* ----------------------------------------
-     * Private Helper Methods
-     * ---------------------------------------- */
 
     private ContinueLearningResponse toContinueLearning(Long userId) {
         Optional<TestAttempt> attemptOpt = testAttemptRepository
@@ -78,14 +74,7 @@ public class DashboardServiceImpl implements DashboardService {
             remainingTimeInMinutes = (int) Math.max(0, remainingSeconds / 60);
         }
 
-        return new ContinueLearningResponse(
-                attempt.getId(),
-                attempt.getTest().getId(),
-                attempt.getTest().getName(),
-                answeredQuestions,
-                attempt.getTest().getTotalQuestions(),
-                remainingTimeInMinutes
-        );
+        return testAttemptMapper.toContinueLearningResponse(attempt, answeredQuestions, remainingTimeInMinutes);
     }
 
     private LearningProgressResponse toLearningProgress(Long userId) {
@@ -134,18 +123,10 @@ public class DashboardServiceImpl implements DashboardService {
 
     private List<RecentTestResponse> toRecentTests(Long userId) {
         Pageable pageable = PageRequest.of(0, RECENT_TESTS_LIMIT);
-
         return testAttemptRepository
                 .findByUserIdAndCompletedTrueOrderByFinishedAtDesc(userId, pageable)
                 .stream()
-                .map(attempt -> new RecentTestResponse(
-                        attempt.getId(),
-                        attempt.getTest().getId(),
-                        attempt.getTest().getName(),
-                        attempt.getScore(),
-                        attempt.getPassed(),
-                        attempt.getFinishedAt()
-                ))
+                .map(testAttemptMapper::toRecentTestResponse)
                 .toList();
     }
 

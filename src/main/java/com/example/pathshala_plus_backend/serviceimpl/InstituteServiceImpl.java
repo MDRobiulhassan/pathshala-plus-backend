@@ -1,5 +1,6 @@
 package com.example.pathshala_plus_backend.serviceimpl;
 
+import com.example.pathshala_plus_backend.Mapper.InstituteMapper;
 import com.example.pathshala_plus_backend.dto.response.institute.InstituteResponse;
 import com.example.pathshala_plus_backend.entity.Institute;
 import com.example.pathshala_plus_backend.repository.InstituteRepository;
@@ -25,19 +26,16 @@ public class InstituteServiceImpl implements InstituteService {
 
     InstituteRepository instituteRepository;
     UnitRepository unitRepository;
+    InstituteMapper instituteMapper;
 
     @Override
     public List<InstituteResponse> getAllInstitutes() {
         List<Institute> institutes = instituteRepository.findAll();
         Set<Long> instituteIdsWithUnits = new HashSet<>(unitRepository.findDistinctInstituteIds());
         return institutes.stream()
-                .map(institute -> new InstituteResponse(
-                        institute.getId(),
-                        institute.getName(),
-                        institute.getShortName(),
-                        institute.getLogoUrl(),
-                        instituteIdsWithUnits.contains(institute.getId())
-                ))
+                .map(institute -> instituteMapper.toInstituteResponse(
+                        institute,
+                        instituteIdsWithUnits.contains(institute.getId())))
                 .toList();
     }
 
@@ -46,13 +44,9 @@ public class InstituteServiceImpl implements InstituteService {
         List<Institute> institutes = instituteRepository.findByEducationLevel_Id(educationLevelId);
         Set<Long> instituteIdsWithUnits = new HashSet<>(unitRepository.findDistinctInstituteIds());
         return institutes.stream()
-                .map(institute -> new InstituteResponse(
-                        institute.getId(),
-                        institute.getName(),
-                        institute.getShortName(),
-                        institute.getLogoUrl(),
-                        instituteIdsWithUnits.contains(institute.getId())
-                ))
+                .map(institute -> instituteMapper.toInstituteResponse(
+                        institute,
+                        instituteIdsWithUnits.contains(institute.getId())))
                 .toList();
     }
 }

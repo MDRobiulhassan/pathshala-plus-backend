@@ -1,20 +1,20 @@
 package com.example.pathshala_plus_backend.serviceimpl;
 
+import com.example.pathshala_plus_backend.Mapper.LanguageMapper;
 import com.example.pathshala_plus_backend.dto.response.language.LanguageResponse;
 import com.example.pathshala_plus_backend.entity.Language;
 import com.example.pathshala_plus_backend.exceptions.ResourceNotFoundException;
 import com.example.pathshala_plus_backend.repository.LanguageRepository;
 import com.example.pathshala_plus_backend.service.LanguageService;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -24,16 +24,13 @@ import java.util.stream.Collectors;
 public class LanguageServiceImpl implements LanguageService {
 
     LanguageRepository languageRepository;
+    LanguageMapper languageMapper;
 
     @Override
     public List<LanguageResponse> getAllLanguages() {
         List<Language> languages = languageRepository.findAll(Sort.by("name"));
         return languages.stream()
-                .map(language -> new LanguageResponse(
-                        language.getId(),
-                        language.getName(),
-                        language.getCode()
-                ))
+                .map(languageMapper::toLanguageResponse)
                 .toList();
     }
 

@@ -1,5 +1,10 @@
 package com.example.pathshala_plus_backend.Mapper;
 
+import com.example.pathshala_plus_backend.dto.response.dashboard.student.ContinueLearningResponse;
+import com.example.pathshala_plus_backend.dto.response.dashboard.student.RecentTestResponse;
+import com.example.pathshala_plus_backend.dto.response.test.TestAttemptResponse;
+import com.example.pathshala_plus_backend.dto.response.test.testhistory.TestAttemptHistoryItem;
+import com.example.pathshala_plus_backend.dto.response.test.testquestion.TestInfoResponse;
 import com.example.pathshala_plus_backend.entity.Test;
 import com.example.pathshala_plus_backend.entity.TestAttempt;
 import com.example.pathshala_plus_backend.entity.User;
@@ -26,4 +31,42 @@ public interface TestAttemptMapper {
     @Mapping(target = "passed", expression = "java(summary.score() >= attempt.getTest().getPassMarks())")
     @Mapping(target = "finishedAt", expression = "java(java.time.Instant.now())")
     void completeAttempt(@MappingTarget TestAttempt attempt, TestScoreSummary summary);
+
+    @Mapping(target = "attemptId", source = "attempt.id")
+    @Mapping(target = "testId", source = "attempt.test.id")
+    @Mapping(target = "resumed", source = "resumed")
+    TestAttemptResponse toAttemptResponse(TestAttempt attempt, Boolean resumed);
+
+    @Mapping(target = "attemptId", source = "id")
+    @Mapping(target = "examInfoId", source = "test.examInfo.id")
+    @Mapping(target = "testName", source = "test.name")
+    @Mapping(target = "testTypeName", source = "test.testType.testTypeName")
+    @Mapping(target = "examType", source = "test.examInfo.examType")
+    @Mapping(target = "totalQuestions", source = "test.totalQuestions")
+    @Mapping(target = "totalMarks", source = "test.examInfo.totalMarks")
+    @Mapping(target = "durationInMinutes", source = "test.durationMinutes")
+    @Mapping(target = "marksPerQuestion", source = "test.marksPerQuestion")
+    @Mapping(target = "negativeMarksPerQuestion", source = "test.negativeMarksPerQuestion")
+    @Mapping(target = "passingMarks", source = "test.passMarks")
+    TestInfoResponse toTestInfoResponse(TestAttempt attempt);
+
+    @Mapping(target = "attemptId", source = "id")
+    @Mapping(target = "testId", source = "test.id")
+    @Mapping(target = "testName", source = "test.name")
+    @Mapping(target = "timeTakenInSeconds", expression = "java(attempt.getFinishedAt() != null " +
+            "? (int) java.time.Duration.between(attempt.getStartedAt(), attempt.getFinishedAt()).getSeconds() : 0)")
+    TestAttemptHistoryItem toHistoryItem(TestAttempt attempt);
+
+    @Mapping(target = "attemptId", source = "id")
+    @Mapping(target = "testId", source = "test.id")
+    @Mapping(target = "testName", source = "test.name")
+    RecentTestResponse toRecentTestResponse(TestAttempt attempt);
+
+    @Mapping(target = "attemptId", source = "attempt.id")
+    @Mapping(target = "testId", source = "attempt.test.id")
+    @Mapping(target = "testName", source = "attempt.test.name")
+    @Mapping(target = "totalQuestions", source = "attempt.test.totalQuestions")
+    @Mapping(target = "answeredQuestions", source = "answeredQuestions")
+    @Mapping(target = "remainingTimeInMinutes", source = "remainingTimeInMinutes")
+    ContinueLearningResponse toContinueLearningResponse(TestAttempt attempt, Integer answeredQuestions, Integer remainingTimeInMinutes);
 }
