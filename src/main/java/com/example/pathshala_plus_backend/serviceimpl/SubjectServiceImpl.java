@@ -1,5 +1,6 @@
 package com.example.pathshala_plus_backend.serviceimpl;
 
+import com.example.pathshala_plus_backend.Mapper.SubjectMapper;
 import com.example.pathshala_plus_backend.dto.response.subject.SubjectResponse;
 import com.example.pathshala_plus_backend.entity.Subject;
 import com.example.pathshala_plus_backend.repository.SubjectRepository;
@@ -21,17 +22,13 @@ import java.util.List;
 public class SubjectServiceImpl implements SubjectService {
 
     SubjectRepository subjectRepository;
+    SubjectMapper subjectMapper;
 
     @Override
     public List<SubjectResponse> getSubjectsByEducationLevel(Long educationLevelId) {
         List<Subject> subjects = subjectRepository.findByEducationLevelId(educationLevelId);
         return subjects.stream()
-                .map(subject -> new SubjectResponse(
-                        subject.getId(),
-                        subject.getName(),
-                        subject.getEducationLevel().getId(),
-                        subject.getLogoUrl()
-                ))
+                .map(subjectMapper::toSubjectResponse)
                 .toList();
     }
 }

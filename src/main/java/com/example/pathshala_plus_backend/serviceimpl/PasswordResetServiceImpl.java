@@ -41,6 +41,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final PasswordResetOtpMapper passwordResetOtpMapper;
 
     @Value("${app.otp-expiration-minutes}")
     private Integer otpExpirationMinutes;
@@ -97,7 +98,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
     private String generateOtp(User user) {
         String otp = OtpGenerator.generate6DigitOtp();
-        PasswordResetOtp passwordResetOtp = PasswordResetOtpMapper.toOtp(user, otp, Instant.now().plus(otpExpirationMinutes, ChronoUnit.MINUTES));
+        PasswordResetOtp passwordResetOtp = passwordResetOtpMapper.toOtp(user, otp, Instant.now().plus(otpExpirationMinutes, ChronoUnit.MINUTES));
         passwordResetOtpRepository.save(passwordResetOtp);
         return otp;
     }
@@ -130,4 +131,3 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     }
 
 }
-

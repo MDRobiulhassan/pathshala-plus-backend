@@ -1,5 +1,6 @@
 package com.example.pathshala_plus_backend.serviceimpl;
 
+import com.example.pathshala_plus_backend.Mapper.UserMapper;
 import com.example.pathshala_plus_backend.dto.request.user.ChangePasswordRequest;
 import com.example.pathshala_plus_backend.dto.request.user.UpdateProfileRequest;
 import com.example.pathshala_plus_backend.dto.response.user.AvatarResponse;
@@ -53,6 +54,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     PasswordEncoder passwordEncoder;
     SupabaseStorageService supabaseStorageService;
     JwtTokenProvider jwtTokenProvider;
+    UserMapper userMapper;
 
     @Override
     public @NonNull UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException {
@@ -81,14 +83,14 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         byte[] resized = resizeAvatar(file);
 
         String path = user.getId() + "/" + UUID.randomUUID() + ".jpg";
-        String publicUrl = supabaseStorageService.upload(StorageBucket.AVATARS,path, resized, "image/jpeg");
+        String publicUrl = supabaseStorageService.upload(StorageBucket.AVATARS, path, resized, "image/jpeg");
 
         String oldAvatarUrl = user.getAvatarUrl();
         user.setAvatarUrl(publicUrl);
         userRepository.save(user);
 
         if (oldAvatarUrl != null) {
-            supabaseStorageService.deleteByPublicUrl(StorageBucket.AVATARS,oldAvatarUrl);
+            supabaseStorageService.deleteByPublicUrl(StorageBucket.AVATARS, oldAvatarUrl);
         }
 
         return new AvatarResponse(publicUrl);
@@ -118,20 +120,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 .map(ur -> ur.getRole().getName())
                 .toList();
 
-        return new UserProfileResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getPhone(),
-                user.getAvatarUrl(),
-                user.getPreferredLanguage().getName(),
-                user.getEducationLevel() != null ? user.getEducationLevel().getName() : null,
-                user.getEducationLevel() != null ? user.getEducationLevel().getDepartment() : null,
-                user.getIsActive(),
-                user.getLastLoginAt(),
-                providers,
-                roles
-        );
+        return userMapper.toUserProfileResponse(user, providers, roles);
     }
 
     private User findCurrentUser() {

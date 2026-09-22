@@ -1,5 +1,6 @@
 package com.example.pathshala_plus_backend.serviceimpl;
 
+import com.example.pathshala_plus_backend.Mapper.ExamInfoMapper;
 import com.example.pathshala_plus_backend.dto.response.examinfo.ExamInfoResponse;
 import com.example.pathshala_plus_backend.entity.ExamInfo;
 import com.example.pathshala_plus_backend.repository.ExamInfoRepository;
@@ -21,18 +22,13 @@ import java.util.List;
 public class ExamInfoServiceImpl implements ExamInfoService {
 
     ExamInfoRepository examInfoRepository;
+    ExamInfoMapper examInfoMapper;
 
     @Override
     public List<ExamInfoResponse> getExamInfoByExamSession(Long examSessionId) {
         List<ExamInfo> examInfos = examInfoRepository.findByExamSessionIdAndUnitIdNullAndShiftIdNull(examSessionId);
         return examInfos.stream()
-                .map(examInfo -> new ExamInfoResponse(
-                        examInfo.getId(),
-                        examInfo.getTest().getId(),
-                        examInfo.getExamType(),
-                        examInfo.getTotalMarks(),
-                        examInfo.getDurationInMinutes()
-                ))
+                .map(examInfoMapper::toExamInfoResponse)
                 .toList();
     }
 
@@ -40,13 +36,7 @@ public class ExamInfoServiceImpl implements ExamInfoService {
     public List<ExamInfoResponse> getExamInfoByUnitAndExamSession(Long unitId, Long examSessionId) {
         List<ExamInfo> examInfos = examInfoRepository.findByUnitIdAndExamSessionIdAndShiftIdNull(unitId, examSessionId);
         return examInfos.stream()
-                .map(examInfo -> new ExamInfoResponse(
-                        examInfo.getId(),
-                        examInfo.getTest().getId(),
-                        examInfo.getExamType(),
-                        examInfo.getTotalMarks(),
-                        examInfo.getDurationInMinutes()
-                ))
+                .map(examInfoMapper::toExamInfoResponse)
                 .toList();
     }
 
@@ -54,13 +44,7 @@ public class ExamInfoServiceImpl implements ExamInfoService {
     public List<ExamInfoResponse> getExamInfoByExamSessionAndShift(Long examSessionId, Long shiftId) {
         List<ExamInfo> examInfos = examInfoRepository.findByExamSessionIdAndShiftId(examSessionId, shiftId);
         return examInfos.stream()
-                .map(examInfo -> new ExamInfoResponse(
-                        examInfo.getId(),
-                        examInfo.getTest().getId(),
-                        examInfo.getExamType(),
-                        examInfo.getTotalMarks(),
-                        examInfo.getDurationInMinutes()
-                ))
+                .map(examInfoMapper::toExamInfoResponse)
                 .toList();
     }
 }

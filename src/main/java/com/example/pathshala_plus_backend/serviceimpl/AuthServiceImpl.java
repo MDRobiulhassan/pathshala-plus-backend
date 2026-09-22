@@ -51,6 +51,9 @@ public class AuthServiceImpl implements AuthService {
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final AuthenticationCookieWriter authenticationCookieWriter;
+    private final UserMapper userMapper;
+    private final UserRoleMapper userRoleMapper;
+    private final RefreshTokenMapper refreshTokenMapper;
 
     @Value("${jwt.refresh-token-expiration-days}")
     private Integer refreshTokenExpirationDays;
@@ -76,10 +79,11 @@ public class AuthServiceImpl implements AuthService {
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleName));
 
-        User user = UserMapper.fromSignupRequest(signupRequest, language, educationLevel, passwordEncoder);
+        User user = userMapper.fromSignupRequest(signupRequest, language, educationLevel);
+        user.setPassword(passwordEncoder.encode(signupRequest.password()));
         User savedUser = userRepository.save(user);
 
-        UserRole userRole = UserRoleMapper.toUserRole(savedUser, role);
+        UserRole userRole = userRoleMapper.toUserRole(savedUser, role);
         userRoleRepository.save(userRole);
 
         Authentication authentication = authenticationManager.authenticate(
@@ -92,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
         String rawAccessToken = jwtTokenProvider.generateAccessToken(authentication);
         String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
-        RefreshToken refreshTokenEntity = RefreshTokenMapper.toRefreshToken(savedUser, rawRefreshToken, Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
+        RefreshToken refreshTokenEntity = refreshTokenMapper.toRefreshToken(savedUser, rawRefreshToken, Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
         refreshTokenRepository.save(refreshTokenEntity);
 
         log.info("User registered successfully: {}", savedUser.getEmail());
@@ -138,8 +142,7 @@ public class AuthServiceImpl implements AuthService {
         String rawAccessToken = jwtTokenProvider.generateAccessToken(authentication);
         String rawRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
-        RefreshToken refreshTokenEntity = RefreshTokenMapper.toRefreshToken(
-                user, rawRefreshToken, Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
+        RefreshToken refreshTokenEntity = refreshTokenMapper.toRefreshToken(user, rawRefreshToken, Instant.now().plus(refreshTokenExpirationDays, ChronoUnit.DAYS));
         refreshTokenRepository.save(refreshTokenEntity);
 
         RoleName role = user.getUserRoles().get(0).getRole().getName();

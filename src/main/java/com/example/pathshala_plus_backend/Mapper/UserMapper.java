@@ -1,35 +1,35 @@
 package com.example.pathshala_plus_backend.Mapper;
 
 import com.example.pathshala_plus_backend.dto.request.auth.SignupRequest;
+import com.example.pathshala_plus_backend.dto.response.user.UserProfileResponse;
 import com.example.pathshala_plus_backend.entity.EducationLevel;
 import com.example.pathshala_plus_backend.entity.Language;
 import com.example.pathshala_plus_backend.entity.User;
-import lombok.experimental.UtilityClass;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.example.pathshala_plus_backend.enums.Provider;
+import com.example.pathshala_plus_backend.enums.RoleName;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@UtilityClass
-public class UserMapper {
-    public static User fromSignupRequest(SignupRequest signupRequest,
-                                   Language language,
-                                   EducationLevel educationLevel,
-                                   PasswordEncoder passwordEncoder) {
-        User user = new User();
-        user.setName(signupRequest.name());
-        user.setEmail(signupRequest.email());
-        user.setPassword(passwordEncoder.encode(signupRequest.password()));
-        user.setPreferredLanguage(language);
-        user.setEducationLevel(educationLevel);
-        user.setIsActive(true);
-        return user;
-    }
+import java.util.List;
 
-    public static User fromOauth2UserInfo(String name,String email,Language preferredLanguage,String avatarUrl) {
-        User user = new User();
-        user.setName(name);
-        user.setEmail(email);
-        user.setPreferredLanguage(preferredLanguage);
-        user.setAvatarUrl(avatarUrl);
-        user.setIsActive(true);
-        return user;
-    }
+@Mapper(componentModel = "spring")
+public interface UserMapper {
+
+    @Mapping(target = "name", source = "signupRequest.name")
+    @Mapping(target = "email", source = "signupRequest.email")
+    @Mapping(target = "password", ignore = true)
+    @Mapping(target = "preferredLanguage", source = "language")
+    @Mapping(target = "educationLevel", source = "educationLevel")
+    @Mapping(target = "isActive", constant = "true")
+    User fromSignupRequest(SignupRequest signupRequest, Language language, EducationLevel educationLevel);
+
+    @Mapping(target = "isActive", constant = "true")
+    User fromOauth2UserInfo(String name, String email, Language preferredLanguage, String avatarUrl);
+
+    @Mapping(target = "preferredLanguage", source = "user.preferredLanguage.name")
+    @Mapping(target = "educationLevel", source = "user.educationLevel.name")
+    @Mapping(target = "department", source = "user.educationLevel.department")
+    @Mapping(target = "providers", source = "providers")
+    @Mapping(target = "roles", source = "roles")
+    UserProfileResponse toUserProfileResponse(User user, List<Provider> providers, List<RoleName> roles);
 }
