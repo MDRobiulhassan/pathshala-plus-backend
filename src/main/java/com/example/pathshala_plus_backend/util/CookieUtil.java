@@ -33,7 +33,7 @@ public class CookieUtil {
         return ResponseCookie.from("refresh_token", token)
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .path("/api/v1/auth/refresh")
+                .path("/")
                 .maxAge(refreshTokenExpirationDays * 24L * 60L * 60L)
                 .sameSite(cookieSameSite)
                 .build();
@@ -41,16 +41,20 @@ public class CookieUtil {
 
     public ResponseCookie clearAccessCookie() {
         return ResponseCookie.from("access_token", "")
-                .path("/")
                 .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .sameSite(cookieSameSite)
                 .maxAge(0)
                 .build();
     }
 
     public ResponseCookie clearRefreshCookie() {
         return ResponseCookie.from("refresh_token", "")
-                .path("/api/v1/auth/refresh")
                 .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .sameSite(cookieSameSite)
                 .maxAge(0)
                 .build();
     }

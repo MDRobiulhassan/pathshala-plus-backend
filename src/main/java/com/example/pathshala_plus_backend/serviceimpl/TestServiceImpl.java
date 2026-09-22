@@ -27,6 +27,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class TestServiceImpl implements TestService {
 
+    private static final Duration SUBMISSION_GRACE_PERIOD = Duration.ofSeconds(30);
     TestTypeRepository testTypeRepository;
     TestRepository testRepository;
     TestAttemptRepository testAttemptRepository;
@@ -56,8 +58,6 @@ public class TestServiceImpl implements TestService {
     TestTypeMapper testTypeMapper;
     TestQuestionMapper testQuestionMapper;
     TestResultMapper testResultMapper;
-
-    private static final Duration SUBMISSION_GRACE_PERIOD = Duration.ofSeconds(30);
 
     @Override
     public List<TestTypeResponse> getAllTestTypes() {
@@ -128,11 +128,7 @@ public class TestServiceImpl implements TestService {
                         new ResourceNotFoundException("Test Attempt Not Found")
                 );
 
-        if (!attempt.getUser().getId().equals(authUtil.getCurrentUserId())) {
-            throw new BadRequestException(
-                    "User not authorized to view this attempt"
-            );
-        }
+        assertOwner(attempt, authUtil.getCurrentUserId());
 
         List<Question> questions = findQuestionsByTestId(
                 attempt.getTest().getId()
@@ -167,12 +163,7 @@ public class TestServiceImpl implements TestService {
     }
 
     @Override
-    public void saveProgress(
-            Long attemptId,
-            SaveAnswersRequest request) {
-
-        Long userId = authUtil.getCurrentUserId();
-
+    public void saveProgress(Long attemptId, SaveAnswersRequest request) {
         TestAttempt attempt = testAttemptRepository.findById(attemptId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -180,12 +171,7 @@ public class TestServiceImpl implements TestService {
                         )
                 );
 
-        if (!attempt.getUser().getId().equals(userId)) {
-            throw new BadRequestException(
-                    "User not authorized to save progress for this attempt"
-            );
-        }
-
+        assertOwner(attempt, authUtil.getCurrentUserId());
         if (attempt.getCompleted()) {
             throw new BadRequestException(
                     "Cannot save progress for a completed attempt"
@@ -291,9 +277,6 @@ public class TestServiceImpl implements TestService {
 
     @Override
     public void submitTestAttempt(Long attemptId) {
-
-        Long userId = authUtil.getCurrentUserId();
-
         TestAttempt attempt = testAttemptRepository.findById(attemptId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -301,12 +284,7 @@ public class TestServiceImpl implements TestService {
                         )
                 );
 
-        if (!attempt.getUser().getId().equals(userId)) {
-            throw new BadRequestException(
-                    "User not authorized to submit this attempt"
-            );
-        }
-
+        assertOwner(attempt, authUtil.getCurrentUserId());
         if (attempt.getCompleted()) {
             throw new BadRequestException(
                     "Test has already been submitted"
@@ -354,11 +332,7 @@ public class TestServiceImpl implements TestService {
     }
 
     @Override
-    public TestResultResponse getTestAttemptResultById(
-            Long attemptId) {
-
-        Long userId = authUtil.getCurrentUserId();
-
+    public TestResultResponse getTestAttemptResultById(Long attemptId) {
         TestAttempt attempt = testAttemptRepository.findById(attemptId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -366,11 +340,7 @@ public class TestServiceImpl implements TestService {
                         )
                 );
 
-        if (!attempt.getUser().getId().equals(userId)) {
-            throw new BadRequestException(
-                    "User not authorized to view this result"
-            );
-        }
+        assertOwner(attempt, authUtil.getCurrentUserId());
 
         if (!attempt.getCompleted()) {
             throw new BadRequestException(
@@ -878,4 +848,11 @@ public class TestServiceImpl implements TestService {
                 )
                 .toList();
     }
+
+    public void assertOwner(TestAttempt attempt, Long currentUserId) {
+        if (!attempt.getUser().getId().equals(currentUserId)) {
+            throw new AccessDeniedException("Not authorized for this attempt");
+        }
+    }
+
 }

@@ -64,7 +64,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                 .orElseThrow(() -> new ResourceNotFoundException("User with email " + otpRequest.email() + " not found"));
         PasswordResetOtp otp = passwordResetOtpRepository
                 .findByUserAndOtpAndIsUsedFalseAndIsDeletedFalse(user, DigestUtils.sha256Hex(otpRequest.otp()))
-                .orElseThrow(() -> new ResourceNotFoundException("Invalid OTP"));
+                .orElseThrow(() -> new BadRequestException("Invalid or expired OTP"));
         if (otp.getOtpExpiresAt().isBefore(Instant.now())) {
             throw new RuntimeException("OTP has expired.");
         }
